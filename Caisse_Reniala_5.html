@@ -486,9 +486,29 @@ function apiGet(callback){
         showApiError('Erreur API: '+data.error);
       }
     })
-    .catch(function(e){showApiError('Impossible de joindre le serveur. Vérifie l\'URL Apps Script.');});
+    .catch(function(e){
+      // CORS bloqué : on essaie via une balise script (JSONP)
+      showLoading('Tentative de connexion…');
+      var script=document.createElement('script');
+      window._apiCallback=function(data){
+        delete window._apiCallback;
+        document.head.removeChild(script);
+        if(data.ok){
+          VE=data.ventesEntree||[];
+          VB=data.ventesBoissons||[];
+          NID=data.nextId||1;
+          _apiLoaded=true;
+          hideLoading();
+          if(callback) callback();
+        } else {
+          showApiError('Erreur: '+data.error);
+        }
+      };
+      script.src=API_URL+'?action=getAll&callback=_apiCallback';
+      script.onerror=function(){showApiError('Impossible de joindre le serveur.');};
+      document.head.appendChild(script);
+    });
 }
-
 function apiPost(action,payload,callback){
   var data=encodeURIComponent(JSON.stringify({action:action,payload:payload}));
   fetch(API_URL+'?method=POST&data='+data)
