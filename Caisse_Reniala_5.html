@@ -469,46 +469,30 @@ function showApiError(msg){
     el.querySelector('.api-msg').textContent='⚠ '+msg;
   }
 }
-
 function apiGet(callback){
   showLoading('Connexion à Google Sheets…');
-  fetch(API_URL+'?action=getAll')
-    .then(function(r){return r.json();})
-    .then(function(data){
-      if(data.ok){
-        VE=data.ventesEntree||[];
-        VB=data.ventesBoissons||[];
-        NID=data.nextId||1;
-        _apiLoaded=true;
-        hideLoading();
-        if(callback) callback();
-      } else {
-        showApiError('Erreur API: '+data.error);
-      }
-    })
-    .catch(function(e){
-      // CORS bloqué : on essaie via une balise script (JSONP)
-      showLoading('Tentative de connexion…');
-      var script=document.createElement('script');
-      window._apiCallback=function(data){
-        delete window._apiCallback;
-        document.head.removeChild(script);
-        if(data.ok){
-          VE=data.ventesEntree||[];
-          VB=data.ventesBoissons||[];
-          NID=data.nextId||1;
-          _apiLoaded=true;
-          hideLoading();
-          if(callback) callback();
-        } else {
-          showApiError('Erreur: '+data.error);
-        }
-      };
-      script.src=API_URL+'?action=getAll&callback=_apiCallback';
-      script.onerror=function(){showApiError('Impossible de joindre le serveur.');};
-      document.head.appendChild(script);
-    });
+  window._apiCallback=function(data){
+    delete window._apiCallback;
+    var sc=document.getElementById('_apiscript');
+    if(sc) sc.parentNode.removeChild(sc);
+    if(data.ok){
+      VE=data.ventesEntree||[];
+      VB=data.ventesBoissons||[];
+      NID=data.nextId||1;
+      _apiLoaded=true;
+      hideLoading();
+      if(callback) callback();
+    } else {
+      showApiError('Erreur: '+data.error);
+    }
+  };
+  var script=document.createElement('script');
+  script.id='_apiscript';
+  script.src=API_URL+'?action=getAll&callback=_apiCallback';
+  script.onerror=function(){showApiError('Impossible de joindre le serveur.');};
+  document.head.appendChild(script);
 }
+
 function apiPost(action,payload,callback){
   var data=encodeURIComponent(JSON.stringify({action:action,payload:payload}));
   fetch(API_URL+'?method=POST&data='+data)
