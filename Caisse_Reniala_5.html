@@ -773,9 +773,10 @@ function initHistorique(){
     return;
   }
   for(var i=0;i<sorted.length;i++){
-    var d=sorted[i];
-    var parts=d.split('-');
-    var label=parts[2]+'/'+parts[1]+'/'+parts[0];
+  var d=sorted[i];
+  var ds=(d+'').substring(0,10);
+  var parts=ds.split('-');
+  var label=parts[2]+'/'+parts[1]+'/'+parts[0];
     sel.innerHTML+='<option value="'+d+'">'+label+'</option>';
   }
   sel.value=(prev&&days[prev])?prev:sorted[0];
