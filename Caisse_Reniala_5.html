@@ -56,18 +56,18 @@ body{font-family:Arial,sans-serif;background:#f0f4f0;color:#222;font-size:14px}
 .chauf-fields{display:none;padding:10px 16px 14px;border-top:1px solid #c5d8f0;gap:10px}
 .chauf-fields.show{display:flex;flex-wrap:wrap}
 .tprev{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;margin:1rem 0}
-.ticket{background:#fff;border:1px solid #ddd;border-radius:8px;padding:14px;font-size:11px;line-height:1.7;box-shadow:0 2px 6px rgba(0,0,0,0.08)}
+.ticket{background:#fff;border:1px solid #ddd;border-radius:8px;padding:14px;font-size:11px;line-height:1.7;font-weight:bold;box-shadow:0 2px 6px rgba(0,0,0,0.08)}
 .thdr{text-align:center;border-bottom:2px dashed #bbb;padding-bottom:10px;margin-bottom:10px}
 .thdr-logo{width:50px;height:50px;border-radius:50%;object-fit:cover;margin:0 auto 6px;display:block;border:2px solid #3a5a1a}
 .thdr-org{font-size:11px;font-weight:bold;color:#085041;line-height:1.4;margin-bottom:4px}
 .thdr-sep{font-size:10px;color:#bbb;letter-spacing:1px;margin:3px 0}
-.thdr-info{font-size:9px;color:#666;line-height:1.6}
+.thdr-info{font-size:9px;color:#666;line-height:1.6;font-weight:bold}
 .badge{display:inline-block;padding:3px 12px;border-radius:20px;font-size:10px;font-weight:bold;margin:6px 0 2px 0}
 .bc{background:#E1F5EE;color:#085041;border:1px solid #1D9E75}
 .bg{background:#FAEEDA;color:#633806;border:1px solid #BA7517}
 .bch{background:#E6F1FB;color:#042C53;border:1px solid #185FA5}
-.tline{display:flex;justify-content:space-between;margin:2px 0;font-size:11px;color:#444}
-.tline-comm{display:flex;justify-content:space-between;margin:1px 0 4px 0;font-size:10px;color:#BA7517;padding-left:10px}
+.tline{display:flex;justify-content:space-between;margin:2px 0;font-size:11px;color:#444;font-weight:bold}
+.tline-comm{display:flex;justify-content:space-between;margin:1px 0 4px 0;font-size:10px;color:#BA7517;padding-left:10px;font-weight:bold}
 .ttot{display:flex;justify-content:space-between;font-weight:bold;font-size:13px;border-top:2px solid #ddd;padding-top:6px;margin-top:6px}
 .stitle{font-size:15px;font-weight:bold;color:#085041;margin:14px 0 10px 0;padding-bottom:5px;border-bottom:2px solid #E1F5EE}
 .empty{text-align:center;color:#aaa;font-size:13px;padding:2rem;font-style:italic}
@@ -1001,17 +1001,17 @@ function printTicket(type){
   var title=(type==='client'?'Ticket Client':(type==='guide'?'Ticket Guide':'Ticket Chauffeur'))+' - '+PRINTER_NAME;
   var css='*{box-sizing:border-box}body{margin:0;background:#fff;font-family:Arial,sans-serif;color:#222}'+
     '.print-wrap{width:'+PRINTER_PAPER_MM+'mm;margin:0 auto;padding:3mm}'+
-    '.ticket{background:#fff;border:1px solid #ddd;border-radius:8px;padding:14px;font-size:11px;line-height:1.7;box-shadow:none;width:100%;min-height:auto}'+
+    '.ticket{background:#fff;border:1px solid #ddd;border-radius:8px;padding:14px;font-size:11px;line-height:1.7;font-weight:bold;box-shadow:none;width:100%;min-height:auto}'+
     '.thdr{text-align:center;border-bottom:2px dashed #bbb;padding-bottom:10px;margin-bottom:10px}'+
     '.thdr-logo{width:50px;height:50px;border-radius:50%;object-fit:cover;margin:0 auto 6px;display:block;border:2px solid #3a5a1a}'+
     '.thdr-org{font-size:11px;font-weight:bold;color:#085041;line-height:1.4;margin-bottom:4px}'+
     '.thdr-sep{font-size:10px;color:#bbb;letter-spacing:1px;margin:3px 0}'+
-    '.thdr-info{font-size:9px;color:#666;line-height:1.6}'+
+    '.thdr-info{font-size:9px;color:#666;line-height:1.6;font-weight:bold}'+
     '.badge{display:inline-block;padding:3px 12px;border-radius:20px;font-size:10px;font-weight:bold;margin:6px 0 2px 0}'+
     '.bc{background:#E1F5EE;color:#085041;border:1px solid #1D9E75}.bg{background:#FAEEDA;color:#633806;border:1px solid #BA7517}.bch{background:#E6F1FB;color:#042C53;border:1px solid #185FA5}'+
-    '.tline{display:flex;justify-content:space-between;gap:10px;margin:2px 0;font-size:11px;color:#444}'+
+    '.tline{display:flex;justify-content:space-between;gap:10px;margin:2px 0;font-size:11px;color:#444;font-weight:bold}'+
     '.tline span:first-child{max-width:60%;overflow-wrap:anywhere}.tline span:last-child{text-align:right}'+
-    '.tline-comm{display:flex;justify-content:space-between;gap:10px;margin:1px 0 4px 0;font-size:10px;color:#BA7517;padding-left:10px}'+
+    '.tline-comm{display:flex;justify-content:space-between;gap:10px;margin:1px 0 4px 0;font-size:10px;color:#BA7517;padding-left:10px;font-weight:bold}'+
     '.ttot{display:flex;justify-content:space-between;gap:10px;font-weight:bold;font-size:13px;border-top:2px solid #ddd;padding-top:6px;margin-top:6px}'+
     '.empty{text-align:center;color:#aaa;font-size:13px;padding:2rem;font-style:italic}'+
     '@page{size:'+PRINTER_PAPER_MM+'mm auto;margin:3mm}@media print{body{margin:0}.print-wrap{padding:0;width:'+PRINTER_PRINT_MM+'mm}.ticket{border:none;border-radius:0;padding:0}}';
