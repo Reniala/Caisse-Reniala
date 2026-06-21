@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8"/>
@@ -138,15 +138,29 @@ td{padding:8px 10px;border-bottom:1px solid #f0f0f0;color:#333}
 .hist-re-print.chauf:hover{background:#E6F1FB}
 .hist-re-print.disabled{opacity:0.35;pointer-events:none}
 .hbadge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:bold}
+body.locked #api-status,body.locked .nav,body.locked .sec,body.locked #param-lock{display:none!important}
+body:not(.locked) #caisse-lock{display:none!important}
 </style>
 </head>
-<body>
+<body class="locked">
 <div class="app">
 
-<!-- Bannière statut API -->
+<div id="caisse-lock" class="param-section" style="border-color:#1D9E75;background:#fff;margin-top:2rem">
+  <div class="hdr" style="margin-bottom:12px">
+    <img class="logo-img" src="data:image/png;base64,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" alt="Reniala"/>
+    <div><div class="rtitle">Reserve Reniala</div><div class="rsub">Acces caisse</div></div>
+  </div>
+  <div class="irow">
+    <div class="fg" style="max-width:280px"><label>Code d'acces caisse</label><input type="password" id="caisse-code-input" autocomplete="off" onkeydown="if(event.key==='Enter')unlockCaisse()"/></div>
+    <button class="btn1" onclick="unlockCaisse()" style="align-self:flex-end">Entrer</button>
+  </div>
+  <div id="caisse-lock-msg" style="font-size:12px;color:#9b1c1c;margin-top:8px"></div>
+</div>
+
+<!-- BanniÃ¨re statut API -->
 <div id="api-status" style="display:none;align-items:center;gap:12px;background:#E1F5EE;border:1px solid #1D9E75;border-radius:8px;padding:10px 16px;margin-bottom:12px;font-size:13px">
   <div style="width:18px;height:18px;border:3px solid #1D9E75;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0"></div>
-  <span class="api-msg" style="color:#085041;font-weight:bold">Connexion à Google Sheets…</span>
+  <span class="api-msg" style="color:#085041;font-weight:bold">Connexion Ã  Google Sheetsâ€¦</span>
 </div>
 <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 
@@ -210,7 +224,7 @@ td{padding:8px 10px;border-bottom:1px solid #f0f0f0;color:#333}
   </div>
   <div class="panier">
     <div class="ptitle">&#128722; Panier</div>
-    <div id="plines"><div class="empty">Aucun article — selectionnez une prestation ci-dessus</div></div>
+    <div id="plines"><div class="empty">Aucun article â€” selectionnez une prestation ci-dessus</div></div>
     <div class="totrow" style="color:#BA7517"><span>Commission guide accompagnateur</span><span id="comm-guide-disp">0 Ar</span></div>
     <div class="totrow" style="font-size:16px;font-weight:bold;color:#085041"><span>TOTAL</span><span id="totdisp">0 Ar</span></div>
   </div>
@@ -251,7 +265,7 @@ td{padding:8px 10px;border-bottom:1px solid #f0f0f0;color:#333}
     <button class="htab" id="htab-hist" onclick="goHTab('hist',this)">&#128344; Historique complet</button>
   </div>
 
-  <!-- Panneau : Dernière vente -->
+  <!-- Panneau : DerniÃ¨re vente -->
   <div id="hpanel-last" class="hpanel active">
     <div id="tprev"><div class="empty">Validez une vente depuis la Caisse pour voir les tickets.</div></div>
     <div class="arow" id="print-btns" style="display:none;margin-top:1rem">
@@ -353,14 +367,14 @@ td{padding:8px 10px;border-bottom:1px solid #f0f0f0;color:#333}
     <div class="param-row">
       <div>
         <div style="font-weight:bold">Recharger depuis Google Sheets</div>
-        <div style="font-size:11px;color:#888">Synchronise la caisse avec les dernières ventes enregistrées dans le Sheet (utile si un autre poste a saisi des ventes).</div>
+        <div style="font-size:11px;color:#888">Synchronise la caisse avec les derniÃ¨res ventes enregistrÃ©es dans le Sheet (utile si un autre poste a saisi des ventes).</div>
       </div>
-      <button class="btn1" onclick="apiGet(function(){initRap();renderBoissons();alert('Synchronisation OK — '+VE.length+' ventes entrées, '+VB.length+' ventes articles.');})" style="white-space:nowrap">&#8635; Synchroniser</button>
+      <button class="btn1" onclick="apiGet(function(){initRap();renderBoissons();alert('Synchronisation OK â€” '+VE.length+' ventes entrÃ©es, '+VB.length+' ventes articles.');})" style="white-space:nowrap">&#8635; Synchroniser</button>
     </div>
     <div class="param-row" style="margin-top:4px">
       <div>
-        <div style="font-weight:bold">&#128190; Migrer l'historique JSON → Google Sheets</div>
-        <div style="font-size:11px;color:#888">One-shot : importe un fichier JSON exporté depuis la v3/v4 vers Google Sheets. <strong style="color:#9b1c1c">Écrase toutes les ventes existantes dans le Sheet.</strong></div>
+        <div style="font-weight:bold">&#128190; Migrer l'historique JSON â†’ Google Sheets</div>
+        <div style="font-size:11px;color:#888">One-shot : importe un fichier JSON exportÃ© depuis la v3/v4 vers Google Sheets. <strong style="color:#9b1c1c">Ã‰crase toutes les ventes existantes dans le Sheet.</strong></div>
       </div>
       <label class="btn2" style="cursor:pointer;white-space:nowrap;padding:9px 16px;font-size:13px;font-weight:bold;border-radius:6px;border:1px solid #ccc;color:#333;display:inline-block">
         &#11014; Migrer (.json)
@@ -433,13 +447,13 @@ var DEF_BOISSONS=[
 ];
 var DEF_GUIDES=['Julien','Bebe','Renaud','Domoina','Fetra'];
 
-// ── CONFIG API ───────────────────────────────────────────────
-// Proxy Cloudflare Worker (gère le CORS vers Apps Script)
+// â”€â”€ CONFIG API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Proxy Cloudflare Worker (gÃ¨re le CORS vers Apps Script)
 var API_URL = 'https://bold-grass-cfaf.maurice-adiba.workers.dev';
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-// Paramètres locaux (tarifs, guides, articles, config) → localStorage
-// Ventes (VE, VB) → Google Sheets via API
+// ParamÃ¨tres locaux (tarifs, guides, articles, config) â†’ localStorage
+// Ventes (VE, VB) â†’ Google Sheets via API
 function ld(k,d){try{var v=localStorage.getItem('rn_'+k);return v?JSON.parse(v):d;}catch(e){return d;}}
 function sv(k,v){try{localStorage.setItem('rn_'+k,JSON.stringify(v));}catch(e){}}
 
@@ -448,7 +462,7 @@ var B=ld('boissons',DEF_BOISSONS);
 var G=ld('guides',DEF_GUIDES);
 var P=ld('params',{pctChauf:10});
 
-// VE/VB/NID chargés depuis l'API au démarrage
+// VE/VB/NID chargÃ©s depuis l'API au dÃ©marrage
 var VE=[];
 var VB=[];
 var NID=1;
@@ -457,7 +471,7 @@ var _configLoaded=false;
 
 function showLoading(msg){
   var el=document.getElementById('api-status');
-  if(el){el.style.display='flex';el.querySelector('.api-msg').textContent=msg||'Chargement…';}
+  if(el){el.style.display='flex';el.querySelector('.api-msg').textContent=msg||'Chargementâ€¦';}
 }
 function hideLoading(){
   var el=document.getElementById('api-status');
@@ -470,7 +484,7 @@ function showApiError(msg){
     el.style.background='#fff0f0';
     el.style.borderColor='#e33';
     el.querySelector('.api-msg').style.color='#c00';
-    el.querySelector('.api-msg').textContent='⚠ '+msg;
+    el.querySelector('.api-msg').textContent='âš  '+msg;
   }
 }
 
@@ -487,7 +501,7 @@ function showNotice(msg){
 }
 
 function apiGet(callback){
-  showLoading('Connexion à Google Sheets…');
+  showLoading('Connexion Ã  Google Sheetsâ€¦');
   fetch(API_URL+'?action=getAll')
   .then(function(r){return r.json();})
   .then(function(data){
@@ -557,8 +571,10 @@ var tarifSel=null;
 var panier=[];
 var derniereVente=null;
 var chaufActif=false;
+var CAISSE_CODE='CORALU_26';
 var PARAM_CODE='1104';
 var paramUnlocked=false;
+var appStarted=false;
 var PRINTER_NAME='Xprinter (XP-80)';
 var PRINTER_PAPER_MM=80;
 var PRINTER_PRINT_MM=74;
@@ -568,6 +584,19 @@ function today(){return new Date().toISOString().split('T')[0];}
 function mkey(d){return d.substring(0,7);}
 function mlbl(k){var p=k.split('-');return ['Jan','Fev','Mar','Avr','Mai','Jun','Jul','Aou','Sep','Oct','Nov','Dec'][parseInt(p[1])-1]+' '+p[0];}
 
+function unlockCaisse(){
+  var inp=document.getElementById('caisse-code-input');
+  var msg=document.getElementById('caisse-lock-msg');
+  if(!inp)return;
+  if(inp.value===CAISSE_CODE){
+    document.body.classList.remove('locked');
+    startApp();
+  }else{
+    if(msg)msg.textContent='Code incorrect.';
+    inp.value='';
+    inp.focus();
+  }
+}
 function showParamLock(){
   var box=document.getElementById('param-lock');
   if(box){
@@ -747,7 +776,7 @@ function validerVente(){
   var nomChauf=chaufActif?getNomChauffeur():'';
   var cc=chaufActif?Math.round(baseChauf*pct/100):0;
 
-  // Prépare les lignes articles séparément
+  // PrÃ©pare les lignes articles sÃ©parÃ©ment
   var lignesArticles=[];
   for(var i=0;i<panier.length;i++){
     var l=panier[i];
@@ -757,7 +786,7 @@ function validerVente(){
       lignesArticles.push({date:date,num:num,nom:l.desc,qty:l.nb,prix:l.prix,montant:l.montant});
     }
   }
-  sv('boissons',B); // stock local mis à jour
+  sv('boissons',B); // stock local mis Ã  jour
 
   var v={
     num:num,date:date,client:client,guide:guide,chauffeur:nomChauf,
@@ -766,9 +795,9 @@ function validerVente(){
     commGuide:cg,commChauf:cc,avecChauf:chaufActif,pctChauf:pct
   };
 
-  // Désactive le bouton pendant l'envoi
+  // DÃ©sactive le bouton pendant l'envoi
   var btnValider=document.querySelector('.btn1[onclick="validerVente()"]');
-  if(btnValider){btnValider.disabled=true;btnValider.textContent='Enregistrement…';}
+  if(btnValider){btnValider.disabled=true;btnValider.textContent='Enregistrementâ€¦';}
 
   var panierContientEntreeFlag=panierContientEntree();
 
@@ -783,7 +812,7 @@ function validerVente(){
       NID=resE.nextId;
       VE.unshift(v);
     } else {
-      alert('Erreur enregistrement vente entrée: '+(resE?resE.error:'réseau'));
+      alert('Erreur enregistrement vente entrÃ©e: '+(resE?resE.error:'rÃ©seau'));
     }
     if(lignesArticles.length){
       VB=lignesArticles.concat(VB);
@@ -800,7 +829,7 @@ function validerVente(){
   if(panierContientEntreeFlag){
     apiPost('addVenteEntree',v,afterEntree);
   } else {
-    // Vente articles seuls (pas d'entrée)
+    // Vente articles seuls (pas d'entrÃ©e)
     v.id=NID++;
     derniereVente=v;
     if(lignesArticles.length){
@@ -1429,47 +1458,56 @@ function suppTarif(i){
 function migrerDepuisJson(input){
   var file=input.files[0];if(!file)return;
   var st=document.getElementById('import-status');
-  st.style.color='#555';st.textContent='Lecture du fichier…';
+  st.style.color='#555';st.textContent='Lecture du fichierâ€¦';
   var reader=new FileReader();
   reader.onload=function(e){
     try{
       var data=JSON.parse(e.target.result);
       if(!data.ventesEntree||!data.ventesBoissons){throw new Error('Format invalide');}
-      if(!confirm('Migrer '+data.ventesEntree.length+' ventes entrées et '+data.ventesBoissons.length+' ventes articles vers Google Sheets ?\n\nATTENTION : toutes les ventes actuelles dans le Sheet seront remplacées.')){input.value='';st.textContent='';return;}
-      st.textContent='Envoi vers Google Sheets… (peut prendre 10-30s)';
+      if(!confirm('Migrer '+data.ventesEntree.length+' ventes entrÃ©es et '+data.ventesBoissons.length+' ventes articles vers Google Sheets ?\n\nATTENTION : toutes les ventes actuelles dans le Sheet seront remplacÃ©es.')){input.value='';st.textContent='';return;}
+      st.textContent='Envoi vers Google Sheetsâ€¦ (peut prendre 10-30s)';
       apiPost('importAll',data,function(res){
         if(res&&res.ok){
           VE=data.ventesEntree;VB=data.ventesBoissons;NID=data.nextId||1;
           st.style.color='#085041';
-          st.textContent='✓ Migration réussie : '+res.countE+' ventes entrées et '+res.countB+' ventes articles dans Google Sheets.';
+          st.textContent='âœ“ Migration rÃ©ussie : '+res.countE+' ventes entrÃ©es et '+res.countB+' ventes articles dans Google Sheets.';
           initRap();renderBoissons();renderParams();
         } else {
           st.style.color='#9b1c1c';
-          st.textContent='✗ Erreur : '+(res?res.error:'réseau');
+          st.textContent='âœ— Erreur : '+(res?res.error:'rÃ©seau');
         }
       });
     }catch(err){
       st.style.color='#9b1c1c';
-      st.textContent='✗ Erreur lecture fichier : '+err.message;
+      st.textContent='âœ— Erreur lecture fichier : '+err.message;
     }
     input.value='';
   };
   reader.readAsText(file);
 }
 
-// ── INITIALISATION ───────────────────────────────────────────
-document.getElementById('datefact').value=today();
-updateGuideSelects();
-renderTarifs();
-renderPanier();
-renderCaisseBoissons();
-// Charge les ventes depuis Google Sheets au démarrage
-apiGet(function(){
-  initRap();
-  renderJour();
-  renderBoissons();
-  renderParams();
-});
+// â”€â”€ INITIALISATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+function startApp(){
+  if(appStarted)return;
+  appStarted=true;
+  document.getElementById('datefact').value=today();
+  updateGuideSelects();
+  renderTarifs();
+  renderPanier();
+  renderCaisseBoissons();
+  // Charge les ventes depuis Google Sheets apres validation du code caisse
+  apiGet(function(){
+    initRap();
+    renderJour();
+    renderBoissons();
+    renderParams();
+  });
+}
+setTimeout(function(){
+  var inp=document.getElementById('caisse-code-input');
+  if(inp)inp.focus();
+},50);
 </script>
 </body>
 </html>
+
