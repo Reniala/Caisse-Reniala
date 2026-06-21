@@ -158,6 +158,16 @@ td{padding:8px 10px;border-bottom:1px solid #f0f0f0;color:#333}
   <button class="nav-btn" id="btn-parametres" onclick="goSec('parametres',this)">&#9881; Parametres</button>
 </div>
 
+<div id="param-lock" class="param-section" style="display:none;border-color:#BA7517;background:#fffaf2">
+  <div class="param-title" style="color:#633806;border-bottom-color:#FAEEDA">Acces responsables</div>
+  <div class="irow">
+    <div class="fg" style="max-width:260px"><label>Code d'acces</label><input type="password" id="param-code-input" autocomplete="off" onkeydown="if(event.key==='Enter')unlockParams()"/></div>
+    <button class="btn1" onclick="unlockParams()" style="align-self:flex-end">Valider</button>
+    <button class="btn2" onclick="cancelParamLock()" style="align-self:flex-end">Annuler</button>
+  </div>
+  <div id="param-lock-msg" style="font-size:12px;color:#9b1c1c;margin-top:8px"></div>
+</div>
+
 <!-- CAISSE -->
 <div id="sec-caisse" class="sec active">
   <div class="hdr">
@@ -547,6 +557,8 @@ var tarifSel=null;
 var panier=[];
 var derniereVente=null;
 var chaufActif=false;
+var PARAM_CODE='1104';
+var paramUnlocked=false;
 var PRINTER_NAME='Xprinter (XP-80)';
 var PRINTER_PAPER_MM=80;
 var PRINTER_PRINT_MM=74;
@@ -556,7 +568,44 @@ function today(){return new Date().toISOString().split('T')[0];}
 function mkey(d){return d.substring(0,7);}
 function mlbl(k){var p=k.split('-');return ['Jan','Fev','Mar','Avr','Mai','Jun','Jul','Aou','Sep','Oct','Nov','Dec'][parseInt(p[1])-1]+' '+p[0];}
 
+function showParamLock(){
+  var box=document.getElementById('param-lock');
+  if(box){
+    box.style.display='block';
+    document.getElementById('param-lock-msg').textContent='';
+    var inp=document.getElementById('param-code-input');
+    inp.value='';
+    setTimeout(function(){inp.focus();},50);
+  }
+}
+function hideParamLock(){
+  var box=document.getElementById('param-lock');
+  if(box)box.style.display='none';
+}
+function unlockParams(){
+  var inp=document.getElementById('param-code-input');
+  var msg=document.getElementById('param-lock-msg');
+  if(!inp)return;
+  if(inp.value===PARAM_CODE){
+    paramUnlocked=true;
+    hideParamLock();
+    goSec('parametres',document.getElementById('btn-parametres'));
+  }else{
+    if(msg)msg.textContent='Code incorrect.';
+    inp.value='';
+    inp.focus();
+  }
+}
+function cancelParamLock(){
+  hideParamLock();
+  goSec('caisse',document.getElementById('btn-caisse'));
+}
 function goSec(id,btn){
+  if(id==='parametres'&&!paramUnlocked){
+    showParamLock();
+    return;
+  }
+  hideParamLock();
   var secs=document.querySelectorAll('.sec');
   for(var i=0;i<secs.length;i++) secs[i].classList.remove('active');
   var btns=document.querySelectorAll('.nav-btn');
