@@ -510,12 +510,18 @@ function configPayload(){
 }
 function saveSharedConfig(callback){
   sv('tarifs',T);sv('boissons',B);sv('guides',G);sv('params',P);
+  showLoading('Sauvegarde des parametres partages...');
   apiPost('saveConfig',configPayload(),function(res){
     if(res&&res.ok){
+      applyConfigFromApi(res);
+      hideLoading();
       if(callback)callback(true);
       return;
     }
-    alert('Modification gardee sur cet appareil, mais pas encore partagee. Le service Google Sheets doit accepter action=saveConfig.');
+    hideLoading();
+    var msg=(res&&res.error)?res.error:'reponse invalide du serveur';
+    showApiError('Parametres non sauvegardes : '+msg);
+    alert('Modification gardee sur cet appareil, mais pas encore partagee.\n\nErreur serveur : '+msg);
     if(callback)callback(false);
   });
 }
