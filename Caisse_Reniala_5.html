@@ -598,7 +598,7 @@ var PRINTER_PRINT_MM=74;
 
 function fmt(n){return Math.round(n).toLocaleString('fr-FR')+' Ar';}
 function today(){return new Date().toISOString().split('T')[0];}
-function mkey(d){return d.substring(0,7);}
+function mkey(d){return articleDateOnly(d).substring(0,7);}
 function mlbl(k){var p=k.split('-');return ['Jan','Fev','Mar','Avr','Mai','Jun','Jul','Aou','Sep','Oct','Nov','Dec'][parseInt(p[1])-1]+' '+p[0];}
 
 function unlockCaisse(){
@@ -1182,7 +1182,18 @@ function vendreBoisson(){
   var id=parseInt(document.getElementById('bsel').value),qty=parseInt(document.getElementById('bqty').value)||1,prix=parseInt(document.getElementById('bprix').value)||0;
   enregistrerVenteBoisson(id,qty,prix);
 }
-function articleDateOnly(d){return (d||'').toString().substring(0,10);}
+function articleDateOnly(d){
+  var s=(d||'').toString();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;
+  if(s.indexOf('T')>0){
+    var dt=new Date(s);
+    if(!isNaN(dt.getTime())){
+      dt=new Date(dt.getTime()+12*60*60*1000);
+      return dt.toISOString().split('T')[0];
+    }
+  }
+  return s.substring(0,10);
+}
 function articleDateObj(d){var s=articleDateOnly(d);return s?new Date(s+'T00:00:00'):null;}
 function articleIso(d){return d.toISOString().split('T')[0];}
 function articleStartOfWeek(d){var x=new Date(d.getFullYear(),d.getMonth(),d.getDate());var day=x.getDay()||7;x.setDate(x.getDate()-day+1);return x;}
@@ -1279,7 +1290,7 @@ function initRap(){
   fillMonthSelect('fb','articles');
   var years={};
   for(var i=0;i<VE.length;i++) years[VE[i].date.substring(0,4)]=1;
-  for(var i=0;i<VB.length;i++) years[VB[i].date.substring(0,4)]=1;
+  for(var i=0;i<VB.length;i++) years[articleDateOnly(VB[i].date).substring(0,4)]=1;
   years[new Date().getFullYear().toString()]=1;
   var ks=Object.keys(years).sort().reverse();
   var sel=document.getElementById('fa');sel.innerHTML='';
@@ -1289,7 +1300,7 @@ function renderJour(){
   var d=document.getElementById('fj').value||today();
   var ve=[],vb=[];
   for(var i=0;i<VE.length;i++) if(VE[i].date===d) ve.push(VE[i]);
-  for(var i=0;i<VB.length;i++) if(VB[i].date===d) vb.push(VB[i]);
+  for(var i=0;i<VB.length;i++) if(articleDateOnly(VB[i].date)===d) vb.push(VB[i]);
   var totE=0,totB=0,pax=0,tG=0,tC=0;
   for(var i=0;i<ve.length;i++){totE+=venteTotalEntrees(ve[i]);tG+=ve[i].commGuide;if(ve[i].avecChauf)tC+=ve[i].commChauf;pax+=ventePax(ve[i]);}
   for(var i=0;i<vb.length;i++) totB+=vb[i].montant;
@@ -1432,7 +1443,7 @@ function renderMois(){
     mm[k].p+=ventePax(VE[i]);mm[k].n++;
   }
   for(var i=0;i<VB.length;i++){
-    if(VB[i].date.substring(0,4)!==annee) continue;
+    if(articleDateOnly(VB[i].date).substring(0,4)!==annee) continue;
     var k=mkey(VB[i].date);if(!mm[k]) mm[k]={e:0,b:0,p:0,cg:0,cc:0,n:0};mm[k].b+=VB[i].montant;
   }
   var keys=Object.keys(mm).sort().reverse();
@@ -1456,7 +1467,7 @@ function printJour(){
   var d=document.getElementById('fj').value||today();
   var ve=[],vb=[];
   for(var i=0;i<VE.length;i++) if(VE[i].date===d) ve.push(VE[i]);
-  for(var i=0;i<VB.length;i++) if(VB[i].date===d) vb.push(VB[i]);
+  for(var i=0;i<VB.length;i++) if(articleDateOnly(VB[i].date)===d) vb.push(VB[i]);
   var txt=ENT+'\n\nRAPPORT JOURNALIER - '+d+'\n*************************************\n\nVENTES ENTREES\n';
   for(var i=0;i<ve.length;i++){
     var v=ve[i];
@@ -1478,7 +1489,7 @@ function printMois(){
   for(var mi=0;mi<ms.length;mi++){
     var k=annee+'-'+ms[mi];var ve2=[],vb2=[];
     for(var i=0;i<VE.length;i++) if(VE[i].date.substring(0,7)===k) ve2.push(VE[i]);
-    for(var i=0;i<VB.length;i++) if(VB[i].date.substring(0,7)===k) vb2.push(VB[i]);
+    for(var i=0;i<VB.length;i++) if(mkey(VB[i].date)===k) vb2.push(VB[i]);
     if(!ve2.length&&!vb2.length) continue;
     var tE=0,tB=0,tG=0,tC=0;
     for(var i=0;i<ve2.length;i++){tE+=venteTotalEntrees(ve2[i]);tG+=ve2[i].commGuide;if(ve2[i].avecChauf)tC+=ve2[i].commChauf;}
