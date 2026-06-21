@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8"/>
@@ -431,8 +431,8 @@ var DEF_BOISSONS=[
 var DEF_GUIDES=['Julien','Bebe','Renaud','Domoina','Fetra'];
 
 // ── CONFIG API ───────────────────────────────────────────────
-// Colle ici l'URL de déploiement de ton Apps Script
-var API_URL = 'https://script.google.com/macros/s/AKfycbwCH1oNmfTjzOHrpMChYSAKBfLk67brpZF1DcucXU1DJX9v0DjW8YbtzO2lEMZzvL9HQg/exec';
+// Proxy Cloudflare Worker (gère le CORS vers Apps Script)
+var API_URL = 'https://bold-grass-cfaf.maurice-adiba.workers.dev';
 // ─────────────────────────────────────────────────────────────
 
 // Paramètres locaux (tarifs, guides, articles, config) → localStorage
@@ -472,11 +472,9 @@ function showApiError(msg){
 
 function apiGet(callback){
   showLoading('Connexion à Google Sheets…');
-  var proxyUrl='https://api.allorigins.win/get?url='+encodeURIComponent(API_URL+'?action=getAll');
-  fetch(proxyUrl)
+  fetch(API_URL+'?action=getAll')
   .then(function(r){return r.json();})
-  .then(function(res){
-    var data=JSON.parse(res.contents);
+  .then(function(data){
     if(data.ok){
       VE=data.ventesEntree||[];
       VB=data.ventesBoissons||[];
@@ -492,12 +490,13 @@ function apiGet(callback){
 }
 
 function apiPost(action,payload,callback){
-  var targetUrl=API_URL+'?method=POST&data='+encodeURIComponent(JSON.stringify({action:action,payload:payload}));
-  var proxyUrl='https://api.allorigins.win/get?url='+encodeURIComponent(targetUrl);
-  fetch(proxyUrl)
+  fetch(API_URL,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:action,payload:payload})
+  })
   .then(function(r){return r.json();})
-  .then(function(res){
-    var d=JSON.parse(res.contents);
+  .then(function(d){
     if(callback) callback(d);
   })
   .catch(function(e){if(callback) callback({ok:false,error:e.toString()});});
