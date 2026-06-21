@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fr">
 <head>
 <meta charset="UTF-8"/>
@@ -300,7 +300,24 @@ body:not(.locked) #caisse-lock{display:none!important}
   </div>
   <div class="stitle">&#128230; Stock articles</div>
   <div class="sgrid" id="sgrid"></div>
-  <div class="stitle">&#128203; Historique ventes articles</div>
+  <div class="stitle">&#128202; Analyse ventes articles</div>
+  <div class="rfilter">
+    <label>Periode</label>
+    <select id="ba-period" onchange="onArticlePeriodChange()">
+      <option value="today">Aujourd'hui</option>
+      <option value="week">Cette semaine</option>
+      <option value="month" selected>Ce mois</option>
+      <option value="year">Cette annee</option>
+      <option value="custom">Personnalisee</option>
+    </select>
+    <input type="date" id="ba-start" onchange="renderArticleAnalytics()" style="display:none"/>
+    <input type="date" id="ba-end" onchange="renderArticleAnalytics()" style="display:none"/>
+    <button class="btn2" onclick="renderArticleAnalytics()">Actualiser</button>
+    <button class="btn1" onclick="printArticleAnalytics()">Imprimer rapport</button>
+    <button class="btn2" onclick="exportArticleAnalyticsCsv()">Exporter CSV</button>
+  </div>
+  <div id="article-analysis"></div>
+  <div class="stitle">&#128203; Historique ventes articles par date</div>
   <div id="bois-log"><div class="empty">Aucune vente enregistree</div></div>
 </div>
 
@@ -642,7 +659,7 @@ function goSec(id,btn){
   for(var i=0;i<btns.length;i++) btns[i].classList.remove('active');
   document.getElementById('sec-'+id).classList.add('active');
   btn.classList.add('active');
-  if(id==='boissons') renderBoissons();
+  if(id==='boissons'){renderBoissons();renderArticleAnalytics();}
   if(id==='rapports'){initRap();renderJour();}
   if(id==='parametres') renderParams();
 }
@@ -1165,11 +1182,81 @@ function vendreBoisson(){
   var id=parseInt(document.getElementById('bsel').value),qty=parseInt(document.getElementById('bqty').value)||1,prix=parseInt(document.getElementById('bprix').value)||0;
   enregistrerVenteBoisson(id,qty,prix);
 }
+function articleDateOnly(d){return (d||'').toString().substring(0,10);}
+function articleDateObj(d){var s=articleDateOnly(d);return s?new Date(s+'T00:00:00'):null;}
+function articleIso(d){return d.toISOString().split('T')[0];}
+function articleStartOfWeek(d){var x=new Date(d.getFullYear(),d.getMonth(),d.getDate());var day=x.getDay()||7;x.setDate(x.getDate()-day+1);return x;}
+function articlePeriodRange(){
+  var sel=document.getElementById('ba-period'),p=sel?sel.value:'month',now=new Date(),start,end;
+  if(p==='today'){start=new Date(now.getFullYear(),now.getMonth(),now.getDate());end=new Date(start);}
+  else if(p==='week'){start=articleStartOfWeek(now);end=new Date(start);end.setDate(start.getDate()+6);}
+  else if(p==='year'){start=new Date(now.getFullYear(),0,1);end=new Date(now.getFullYear(),11,31);}
+  else if(p==='custom'){
+    var s=document.getElementById('ba-start').value,e=document.getElementById('ba-end').value;
+    start=s?new Date(s+'T00:00:00'):new Date(now.getFullYear(),now.getMonth(),1);
+    end=e?new Date(e+'T00:00:00'):new Date(now.getFullYear(),now.getMonth()+1,0);
+  }else{start=new Date(now.getFullYear(),now.getMonth(),1);end=new Date(now.getFullYear(),now.getMonth()+1,0);}
+  return {start:start,end:end,label:articleIso(start)+' au '+articleIso(end)};
+}
+function onArticlePeriodChange(){
+  var custom=document.getElementById('ba-period').value==='custom';
+  document.getElementById('ba-start').style.display=custom?'inline-block':'none';
+  document.getElementById('ba-end').style.display=custom?'inline-block':'none';
+  if(custom&&!document.getElementById('ba-start').value){
+    var r=articlePeriodRange();document.getElementById('ba-start').value=articleIso(r.start);document.getElementById('ba-end').value=articleIso(r.end);
+  }
+  renderArticleAnalytics();
+}
+function articleInRange(v,r){var d=articleDateObj(v.date);return d&&d>=r.start&&d<=r.end;}
+function articleCatalogByName(n){for(var i=0;i<B.length;i++) if((B[i].nom||'')===n)return B[i];return null;}
+function articleAnalyticsRows(){
+  var r=articlePeriodRange(),rows=[],map={},days={};
+  for(var i=0;i<VB.length;i++){
+    var v=VB[i];if(!articleInRange(v,r))continue;
+    var name=v.nom||'--',qty=parseInt(v.qty)||0,amount=parseInt(v.montant)||0,cat=articleCatalogByName(name),pa=cat?(parseInt(cat.pa)||0):0,cost=pa*qty,margin=amount-cost;
+    if(!map[name])map[name]={nom:name,qty:0,lignes:0,ca:0,cout:0,marge:0,stock:cat?cat.stock:''};
+    map[name].qty+=qty;map[name].lignes++;map[name].ca+=amount;map[name].cout+=cost;map[name].marge+=margin;if(cat)map[name].stock=cat.stock;
+    var d=articleDateOnly(v.date);if(!days[d])days[d]=[];days[d].push({nom:name,qty:qty,prix:v.prix||0,montant:amount,marge:margin});
+  }
+  var names=Object.keys(map).sort(function(a,b){return map[b].ca-map[a].ca;});
+  for(var j=0;j<names.length;j++)rows.push(map[names[j]]);
+  return {range:r,rows:rows,days:days};
+}
+function renderArticleAnalytics(){
+  var data=articleAnalyticsRows(),rows=data.rows,h='';
+  if(!rows.length){document.getElementById('article-analysis').innerHTML='<div class="empty">Aucune vente article sur cette periode</div>';renderVBois();return;}
+  var tq=0,tca=0,tcost=0,tm=0;
+  h+='<table><thead><tr><th>Article</th><th class="num">Lignes</th><th class="num">Qte vendue</th><th class="num">CA</th><th class="num">Cout achat</th><th class="num">Marge</th><th class="num">Stock</th></tr></thead><tbody>';
+  for(var i=0;i<rows.length;i++){var r=rows[i];tq+=r.qty;tca+=r.ca;tcost+=r.cout;tm+=r.marge;h+='<tr><td>'+esc(r.nom)+'</td><td class="num">'+r.lignes+'</td><td class="num">'+r.qty+'</td><td class="num">'+r.ca.toLocaleString('fr-FR')+'</td><td class="num">'+r.cout.toLocaleString('fr-FR')+'</td><td class="num" style="color:'+(r.marge>=0?'#1D9E75':'#c00')+'">'+r.marge.toLocaleString('fr-FR')+'</td><td class="num">'+r.stock+'</td></tr>';}
+  h+='<tr class="r-total"><td>Total</td><td></td><td class="num">'+tq+'</td><td class="num">'+tca.toLocaleString('fr-FR')+'</td><td class="num">'+tcost.toLocaleString('fr-FR')+'</td><td class="num">'+tm.toLocaleString('fr-FR')+'</td><td></td></tr></tbody></table>';
+  document.getElementById('article-analysis').innerHTML=h;
+  renderVBois();
+}
 function renderVBois(){
   var log=document.getElementById('bois-log');
-  if(!VB.length){log.innerHTML='<div class="empty">Aucune vente enregistree</div>';return;}
-  var h='';for(var i=0;i<Math.min(VB.length,30);i++) h+='<div class="lline"><span>'+VB[i].nom+' x '+VB[i].qty+'</span><span style="color:#aaa">'+VB[i].date+'</span><span style="font-weight:bold">'+fmt(VB[i].montant)+'</span></div>';
+  var data=articleAnalyticsRows(),days=data.days,keys=Object.keys(days).sort().reverse();
+  if(!keys.length){log.innerHTML='<div class="empty">Aucune vente enregistree sur cette periode</div>';return;}
+  var h='';
+  for(var k=0;k<keys.length;k++){
+    var d=keys[k],arr=days[d],tot=0,mar=0;
+    for(var i=0;i<arr.length;i++){tot+=arr[i].montant;mar+=arr[i].marge;}
+    h+='<div class="hist-day-hdr"><span>'+d+'</span><span class="hist-day-stat">'+arr.length+' ligne(s) | CA '+tot.toLocaleString('fr-FR')+' Ar | Marge '+mar.toLocaleString('fr-FR')+' Ar</span></div>';
+    for(var j=0;j<arr.length;j++){var x=arr[j];h+='<div class="lline"><span>'+esc(x.nom)+' x '+x.qty+'</span><span style="color:#888">Prix: '+(x.prix||0).toLocaleString('fr-FR')+' Ar</span><span style="font-weight:bold">'+fmt(x.montant)+'</span></div>';}
+  }
   log.innerHTML=h;
+}
+function printArticleAnalytics(){
+  var data=articleAnalyticsRows(),rows=data.rows,txt=ENT+'\n\nRAPPORT ARTICLES - '+data.range.label+'\n*************************************\n';
+  var tq=0,tca=0,tcost=0,tm=0;
+  for(var i=0;i<rows.length;i++){var r=rows[i];txt+=r.nom+' | lignes: '+r.lignes+' | qte: '+r.qty+' | CA: '+r.ca.toLocaleString('fr-FR')+' Ar | cout: '+r.cout.toLocaleString('fr-FR')+' Ar | marge: '+r.marge.toLocaleString('fr-FR')+' Ar | stock: '+r.stock+'\n';tq+=r.qty;tca+=r.ca;tcost+=r.cout;tm+=r.marge;}
+  txt+='*************************************\nQuantite: '+tq+'\nCA: '+tca.toLocaleString('fr-FR')+' Ar\nCout achat: '+tcost.toLocaleString('fr-FR')+' Ar\nMarge: '+tm.toLocaleString('fr-FR')+' Ar';
+  var w=window.open('','_blank','width=600,height=750');if(w){w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"/></head><body><pre style="font-family:monospace;font-size:13px;padding:24px;line-height:1.8">'+txt+'</pre><'+'script>window.print();setTimeout(function(){window.close();},1500);<'+'/script></body></html>');w.document.close();}
+}
+function exportArticleAnalyticsCsv(){
+  var data=articleAnalyticsRows(),rows=data.rows,csv='Article;Lignes;Quantite;CA;Cout achat;Marge;Stock\n';
+  for(var i=0;i<rows.length;i++){var r=rows[i];csv+=[r.nom,r.lignes,r.qty,r.ca,r.cout,r.marge,r.stock].join(';')+'\n';}
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='rapport_articles_'+data.range.label.replace(/[^0-9a-zA-Z]+/g,'_')+'.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},1000);
 }
 
 function moisDisponibles(type){
@@ -1512,5 +1599,3 @@ setTimeout(function(){
 </script>
 </body>
 </html>
-
-
