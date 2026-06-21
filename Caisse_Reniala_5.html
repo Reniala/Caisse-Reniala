@@ -115,7 +115,6 @@ td{padding:8px 10px;border-bottom:1px solid #f0f0f0;color:#333}
 .mc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 .mc-stat{font-size:11px;color:#888}
 .mc-stat span{display:block;font-size:13px;font-weight:bold;color:#333;margin-top:2px}
-.danger-zone{border-color:#e7b8b8;background:#fffafa}.danger-zone .param-title{color:#9b1c1c;border-bottom-color:#f4d1d1}
 /* Historique tickets */
 .htabs{display:flex;gap:6px;margin-bottom:1rem;border-bottom:3px solid #E1F5EE;padding-bottom:8px}
 .htab{padding:8px 18px;border:1px solid #ccc;border-radius:6px 6px 0 0;font-size:13px;cursor:pointer;background:#fff;color:#555;font-weight:bold;margin-bottom:-3px}
@@ -492,6 +491,11 @@ function apiPost(action,payload,callback){
     if(callback) callback(d);
   })
   .catch(function(e){if(callback) callback({ok:false,error:e.toString()});});
+}
+function esc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g,function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
 }
 var tarifSel=null;
 var panier=[];
@@ -984,12 +988,13 @@ function renderBoissons(){
   var h='';
   for(var i=0;i<B.length;i++){
     var x=B[i];
-    h+='<div class="scard"><div class="sname">'+x.nom+'</div>'+
+    h+='<div class="scard"><div class="sname">'+esc(x.nom)+'</div>'+
     '<div class="sqty'+(x.stock<=5?' salert':'')+'">'+x.stock+'</div>'+
     '<div class="sinfo">'+(x.stock<=5?'&#9888; Stock bas':'unites')+'</div>'+
     '<div class="fg" style="margin-top:8px"><label>Prix vente</label><input type="number" value="'+x.pv+'" onchange="updArticlePrix('+x.id+',this.value)"/></div>'+
     '<div class="qbtns"><button class="qb" onclick="ajustS('+x.id+',-1)">&#8722;</button>'+
-    '<button class="qb" onclick="ajustS('+x.id+',1)">+</button></div></div>';
+    '<button class="qb" onclick="ajustS('+x.id+',1)">+</button>'+
+    '<button class="btn2" onclick="supprimerBoisson('+x.id+')" style="padding:6px 10px;font-size:12px;margin-left:auto">&#128465; Supprimer</button></div></div>';
   }
   document.getElementById('sgrid').innerHTML=h;
   remplirSelectBoisson('bsel');
@@ -1011,6 +1016,17 @@ function ajouterBoisson(){
   var mx=0;for(var i=0;i<B.length;i++) if(B[i].id>mx) mx=B[i].id;
   B.push({id:mx+1,nom:nom,stock:parseInt(document.getElementById('nb-stock').value)||0,pa:parseInt(document.getElementById('nb-achat').value)||0,pv:parseInt(document.getElementById('nb-vente').value)||0});
   sv('boissons',B);document.getElementById('nb-nom').value='';renderBoissons();
+}
+function supprimerBoisson(id){
+  var idx=-1,b=null;
+  for(var i=0;i<B.length;i++) if(B[i].id===id){idx=i;b=B[i];break;}
+  if(idx<0)return;
+  if(!confirm("Supprimer l'article \""+b.nom+"\" ?"))return;
+  B.splice(idx,1);
+  for(var j=panier.length-1;j>=0;j--) if(isBoissonLine(panier[j])&&panier[j].boissonId===id) panier.splice(j,1);
+  sv('boissons',B);
+  renderBoissons();
+  renderPanier();
 }
 function enregistrerVenteBoisson(id,qty,prix){
   var b=getBoisson(id);
@@ -1260,14 +1276,6 @@ function printMois(){
   if(w){w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"/></head><body><pre style="font-family:monospace;font-size:13px;padding:24px;line-height:1.8">'+txt+'</pre><'+'script>window.print();setTimeout(function(){window.close();},1500);<'+'/script></body></html>');w.document.close();}
 }
 
-function resetVentesTest(){
-  if(!confirm('Supprimer toutes les ventes de test ? Cette action ne supprime pas les guides, tarifs et articles.\n\nATTENTION : cela ne supprime PAS les données dans Google Sheets. Pour nettoyer le Sheet, utilise l\'onglet Google Sheets directement.')) return;
-  VE=[];VB=[];NID=1;derniereVente=null;
-  document.getElementById('tprev').innerHTML='<div class="empty">Validez une vente depuis la Caisse pour voir les tickets.</div>';
-  document.getElementById('print-btns').style.display='none';
-  initRap();renderParams();renderBoissons();renderPanier();
-  alert('Ventes effacees localement. Le prochain numero repart a 1.');
-}
 function renderParams(){
   document.getElementById('pct-chauf-input').value=P.pctChauf||10;
   var h='';
@@ -1279,15 +1287,29 @@ function renderParams(){
 function updCG(i,v){T[i].commGuide=parseInt(v)||0;sv('tarifs',T);renderTarifs();}
 function saveParams(){P.pctChauf=parseFloat(document.getElementById('pct-chauf-input').value)||10;sv('params',P);document.getElementById('chauf-pct-lbl').textContent=P.pctChauf+'%';}
 function renderGuides(){
-  var h='';for(var i=0;i<G.length;i++) h+='<div class="param-row"><span>'+G[i]+'</span><button class="btn2" onclick="suppGuide('+i+')" style="padding:4px 10px;font-size:12px">&#128465; Supprimer</button></div>';
-  document.getElementById('guides-list').innerHTML=h;
+  var h='';for(var i=0;i<G.length;i++) h+='<div class="param-row"><span>'+esc(G[i])+'</span><button class="btn2 js-del-guide" data-index="'+i+'" style="padding:4px 10px;font-size:12px">&#128465; Supprimer</button></div>';
+  var el=document.getElementById('guides-list');
+  el.innerHTML=h;
+  var btns=el.querySelectorAll('.js-del-guide');
+  for(var j=0;j<btns.length;j++) btns[j].onclick=function(){suppGuide(parseInt(this.getAttribute('data-index'),10));};
   updateGuideSelects();
 }
 function ajouterGuide(){var n=document.getElementById('new-guide').value.trim();if(!n)return;G.push(n);sv('guides',G);document.getElementById('new-guide').value='';renderGuides();}
-function suppGuide(i){if(confirm('Supprimer?')){G.splice(i,1);sv('guides',G);renderGuides();}}
+function suppGuide(i){
+  if(i<0||i>=G.length)return;
+  if(confirm('Supprimer "'+G[i]+'" ?')){
+    G.splice(i,1);
+    sv('guides',G);
+    renderGuides();
+    renderParams();
+  }
+}
 function renderTarifsList(){
-  var h='';for(var i=0;i<T.length;i++) h+='<div class="param-row"><span><strong>'+T[i].code+'</strong> &mdash; '+T[i].desc+' &middot; '+fmt(T[i].prix)+' &middot; Guide: '+fmt(T[i].commGuide)+'/pers</span><button class="btn2" onclick="suppTarif('+i+')" style="padding:4px 10px;font-size:12px">&#128465;</button></div>';
-  document.getElementById('tarifs-list').innerHTML=h;
+  var h='';for(var i=0;i<T.length;i++) h+='<div class="param-row"><span><strong>'+esc(T[i].code)+'</strong> &mdash; '+esc(T[i].desc)+' &middot; '+fmt(T[i].prix)+' &middot; Guide: '+fmt(T[i].commGuide)+'/pers</span><button class="btn2 js-del-tarif" data-index="'+i+'" style="padding:4px 10px;font-size:12px">&#128465; Supprimer</button></div>';
+  var el=document.getElementById('tarifs-list');
+  el.innerHTML=h;
+  var btns=el.querySelectorAll('.js-del-tarif');
+  for(var j=0;j<btns.length;j++) btns[j].onclick=function(){suppTarif(parseInt(this.getAttribute('data-index'),10));};
 }
 function ajouterTarif(){
   var code=document.getElementById('nt-code').value.trim().toUpperCase();
@@ -1300,7 +1322,16 @@ function ajouterTarif(){
   document.getElementById('nt-prix').value='';document.getElementById('nt-comm').value='';
   renderTarifsList();renderTarifs();renderParams();
 }
-function suppTarif(i){if(confirm('Supprimer?')){T.splice(i,1);sv('tarifs',T);renderTarifsList();renderTarifs();renderParams();}}
+function suppTarif(i){
+  if(i<0||i>=T.length)return;
+  if(confirm('Supprimer le tarif "'+T[i].code+' - '+T[i].desc+'" ?')){
+    T.splice(i,1);
+    sv('tarifs',T);
+    renderTarifsList();
+    renderTarifs();
+    renderParams();
+  }
+}
 
 function migrerDepuisJson(input){
   var file=input.files[0];if(!file)return;
