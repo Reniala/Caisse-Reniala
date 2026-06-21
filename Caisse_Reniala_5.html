@@ -441,6 +441,7 @@ var VE=[];
 var VB=[];
 var NID=1;
 var _apiLoaded=false;
+var _configLoaded=false;
 
 function showLoading(msg){
   var el=document.getElementById('api-status');
@@ -467,6 +468,7 @@ function apiGet(callback){
   .then(function(r){return r.json();})
   .then(function(data){
     if(data.ok){
+      applyConfigFromApi(data);
       VE=data.ventesEntree||[];
       VB=data.ventesBoissons||[];
       NID=data.nextId||1;
@@ -491,6 +493,31 @@ function apiPost(action,payload,callback){
     if(callback) callback(d);
   })
   .catch(function(e){if(callback) callback({ok:false,error:e.toString()});});
+}
+function applyConfigFromApi(data){
+  var cfg=data.config||{};
+  if(data.tarifs) cfg.tarifs=data.tarifs;
+  if(data.boissons) cfg.boissons=data.boissons;
+  if(data.guides) cfg.guides=data.guides;
+  if(data.params) cfg.params=data.params;
+  if(cfg.tarifs){T=cfg.tarifs;sv('tarifs',T);_configLoaded=true;}
+  if(cfg.boissons){B=cfg.boissons;sv('boissons',B);_configLoaded=true;}
+  if(cfg.guides){G=cfg.guides;sv('guides',G);_configLoaded=true;}
+  if(cfg.params){P=cfg.params;sv('params',P);_configLoaded=true;}
+}
+function configPayload(){
+  return {tarifs:T,boissons:B,guides:G,params:P};
+}
+function saveSharedConfig(callback){
+  sv('tarifs',T);sv('boissons',B);sv('guides',G);sv('params',P);
+  apiPost('saveConfig',configPayload(),function(res){
+    if(res&&res.ok){
+      if(callback)callback(true);
+      return;
+    }
+    alert('Modification gardee sur cet appareil, mais pas encore partagee. Le service Google Sheets doit accepter action=saveConfig.');
+    if(callback)callback(false);
+  });
 }
 function esc(s){
   return String(s==null?'':s).replace(/[&<>"']/g,function(c){
@@ -1009,13 +1036,13 @@ function getBoisson(id){for(var i=0;i<B.length;i++) if(B[i].id===id)return B[i];
 function onBoisSel(){var el=document.getElementById('bsel');if(!el)return;var b=getBoisson(parseInt(el.value));if(b)document.getElementById('bprix').value=b.pv;}
 function renderCaisseBoissons(){remplirSelectBoisson('cbsel');onCaisseBoisSel();}
 function onCaisseBoisSel(){var el=document.getElementById('cbsel');if(!el)return;var b=getBoisson(parseInt(el.value));if(b)document.getElementById('cbprix').value=b.pv;}
-function ajustS(id,d){for(var i=0;i<B.length;i++) if(B[i].id===id){B[i].stock=Math.max(0,B[i].stock+d);break;}sv('boissons',B);renderBoissons();}
-function updArticlePrix(id,v){for(var i=0;i<B.length;i++) if(B[i].id===id){B[i].pv=parseInt(v)||0;break;}sv('boissons',B);renderBoissons();}
+function ajustS(id,d){for(var i=0;i<B.length;i++) if(B[i].id===id){B[i].stock=Math.max(0,B[i].stock+d);break;}saveSharedConfig();renderBoissons();}
+function updArticlePrix(id,v){for(var i=0;i<B.length;i++) if(B[i].id===id){B[i].pv=parseInt(v)||0;break;}saveSharedConfig();renderBoissons();}
 function ajouterBoisson(){
   var nom=document.getElementById('nb-nom').value.trim();if(!nom){alert('Entrez un nom');return;}
   var mx=0;for(var i=0;i<B.length;i++) if(B[i].id>mx) mx=B[i].id;
   B.push({id:mx+1,nom:nom,stock:parseInt(document.getElementById('nb-stock').value)||0,pa:parseInt(document.getElementById('nb-achat').value)||0,pv:parseInt(document.getElementById('nb-vente').value)||0});
-  sv('boissons',B);document.getElementById('nb-nom').value='';renderBoissons();
+  saveSharedConfig();document.getElementById('nb-nom').value='';renderBoissons();
 }
 function supprimerBoisson(id){
   var idx=-1,b=null;
@@ -1024,7 +1051,7 @@ function supprimerBoisson(id){
   if(!confirm("Supprimer l'article \""+b.nom+"\" ?"))return;
   B.splice(idx,1);
   for(var j=panier.length-1;j>=0;j--) if(isBoissonLine(panier[j])&&panier[j].boissonId===id) panier.splice(j,1);
-  sv('boissons',B);
+  saveSharedConfig();
   renderBoissons();
   renderPanier();
 }
@@ -1284,8 +1311,8 @@ function renderParams(){
   renderGuides();renderTarifsList();
   var rc=document.getElementById('reset-counts');if(rc)rc.textContent=VE.length+' ventes entrees et '+VB.length+' ventes articles enregistrees.';
 }
-function updCG(i,v){T[i].commGuide=parseInt(v)||0;sv('tarifs',T);renderTarifs();}
-function saveParams(){P.pctChauf=parseFloat(document.getElementById('pct-chauf-input').value)||10;sv('params',P);document.getElementById('chauf-pct-lbl').textContent=P.pctChauf+'%';}
+function updCG(i,v){T[i].commGuide=parseInt(v)||0;saveSharedConfig();renderTarifs();}
+function saveParams(){P.pctChauf=parseFloat(document.getElementById('pct-chauf-input').value)||10;saveSharedConfig();document.getElementById('chauf-pct-lbl').textContent=P.pctChauf+'%';}
 function renderGuides(){
   var h='';for(var i=0;i<G.length;i++) h+='<div class="param-row"><span>'+esc(G[i])+'</span><button class="btn2 js-del-guide" data-index="'+i+'" style="padding:4px 10px;font-size:12px">&#128465; Supprimer</button></div>';
   var el=document.getElementById('guides-list');
@@ -1294,12 +1321,12 @@ function renderGuides(){
   for(var j=0;j<btns.length;j++) btns[j].onclick=function(){suppGuide(parseInt(this.getAttribute('data-index'),10));};
   updateGuideSelects();
 }
-function ajouterGuide(){var n=document.getElementById('new-guide').value.trim();if(!n)return;G.push(n);sv('guides',G);document.getElementById('new-guide').value='';renderGuides();}
+function ajouterGuide(){var n=document.getElementById('new-guide').value.trim();if(!n)return;G.push(n);saveSharedConfig();document.getElementById('new-guide').value='';renderGuides();}
 function suppGuide(i){
   if(i<0||i>=G.length)return;
   if(confirm('Supprimer "'+G[i]+'" ?')){
     G.splice(i,1);
-    sv('guides',G);
+    saveSharedConfig();
     renderGuides();
     renderParams();
   }
@@ -1317,7 +1344,7 @@ function ajouterTarif(){
   var prix=parseInt(document.getElementById('nt-prix').value)||0;
   var cg=parseInt(document.getElementById('nt-comm').value)||0;
   if(!code||!desc)return;
-  T.push({code:code,desc:desc,prix:prix,commGuide:cg});sv('tarifs',T);
+  T.push({code:code,desc:desc,prix:prix,commGuide:cg});saveSharedConfig();
   document.getElementById('nt-code').value='';document.getElementById('nt-desc').value='';
   document.getElementById('nt-prix').value='';document.getElementById('nt-comm').value='';
   renderTarifsList();renderTarifs();renderParams();
@@ -1326,7 +1353,7 @@ function suppTarif(i){
   if(i<0||i>=T.length)return;
   if(confirm('Supprimer le tarif "'+T[i].code+' - '+T[i].desc+'" ?')){
     T.splice(i,1);
-    sv('tarifs',T);
+    saveSharedConfig();
     renderTarifsList();
     renderTarifs();
     renderParams();
