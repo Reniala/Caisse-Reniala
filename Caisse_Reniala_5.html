@@ -472,10 +472,11 @@ function showApiError(msg){
 
 function apiGet(callback){
   showLoading('Connexion à Google Sheets…');
-  window._apiCallback=function(data){
-    delete window._apiCallback;
-    var sc=document.getElementById('_apiscript');
-    if(sc) sc.parentNode.removeChild(sc);
+  var proxyUrl='https://api.allorigins.win/get?url='+encodeURIComponent(API_URL+'?action=getAll');
+  fetch(proxyUrl)
+  .then(function(r){return r.json();})
+  .then(function(res){
+    var data=JSON.parse(res.contents);
     if(data.ok){
       VE=data.ventesEntree||[];
       VB=data.ventesBoissons||[];
@@ -486,19 +487,19 @@ function apiGet(callback){
     } else {
       showApiError('Erreur: '+data.error);
     }
-  };
-  var script=document.createElement('script');
-  script.id='_apiscript';
-  script.src=API_URL+'?action=getAll&callback=_apiCallback';
-  script.onerror=function(){showApiError('Impossible de joindre le serveur.');};
-  document.head.appendChild(script);
+  })
+  .catch(function(e){showApiError('Impossible de joindre le serveur.');});
 }
 
 function apiPost(action,payload,callback){
-  var data=encodeURIComponent(JSON.stringify({action:action,payload:payload}));
-  fetch(API_URL+'?method=POST&data='+data)
+  var targetUrl=API_URL+'?method=POST&data='+encodeURIComponent(JSON.stringify({action:action,payload:payload}));
+  var proxyUrl='https://api.allorigins.win/get?url='+encodeURIComponent(targetUrl);
+  fetch(proxyUrl)
   .then(function(r){return r.json();})
-  .then(function(d){if(callback) callback(d);})
+  .then(function(res){
+    var d=JSON.parse(res.contents);
+    if(callback) callback(d);
+  })
   .catch(function(e){if(callback) callback({ok:false,error:e.toString()});});
 }
 var tarifSel=null;
