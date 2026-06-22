@@ -153,7 +153,7 @@ body:not(.locked) #caisse-lock{display:none!important}
     <div><div class="rtitle">Reserve Reniala</div><div class="rsub">Acces caisse</div></div>
   </div>
   <div class="irow">
-    <div class="fg" style="max-width:280px"><label>Code d'acces caisse</label><input type="password" id="caisse-code-input" autocomplete="off" onkeydown="if(event.key==='Enter')unlockCaisse()"/></div>
+    <div class="fg" style="max-width:280px"><label>Code d'acces</label><input type="password" id="caisse-code-input" autocomplete="off" onkeydown="if(event.key==='Enter')unlockCaisse()"/></div>
     <button class="btn1" onclick="unlockCaisse()" style="align-self:flex-end">Entrer</button>
   </div>
   <div id="caisse-lock-msg" style="font-size:12px;color:#9b1c1c;margin-top:8px"></div>
@@ -172,6 +172,7 @@ body:not(.locked) #caisse-lock{display:none!important}
   <button class="nav-btn" id="btn-boissons" onclick="goSec('boissons',this)">&#127862; Articles</button>
   <button class="nav-btn" id="btn-rapports" onclick="goSec('rapports',this)">&#128202; Rapports</button>
   <button class="nav-btn" id="btn-parametres" onclick="goSec('parametres',this)">&#9881; Parametres</button>
+  <span id="session-user" style="align-self:center;margin-left:8px;font-size:12px;font-weight:bold;color:#085041"></span>
   <button class="nav-btn close-caisse" id="btn-fermer-caisse" onclick="fermerCaisse()">&#128274; Fermer la caisse</button>
 </div>
 
@@ -593,10 +594,16 @@ var tarifSel=null;
 var panier=[];
 var derniereVente=null;
 var chaufActif=false;
-var CAISSE_CODE='CORALU_26';
+var CAISSE_USERS=[
+  {code:'CORALU_26',nom:'Maurice',role:'responsable'},
+  {code:'VENDEUR_1',nom:'Vendeur 1',role:'vendeur'},
+  {code:'VENDEUR_2',nom:'Vendeur 2',role:'vendeur'},
+  {code:'VENDEUR_3',nom:'Vendeur 3',role:'vendeur'}
+];
 var PARAM_CODE='1104';
 var paramUnlocked=false;
 var appStarted=false;
+var currentUser=null;
 var PRINTER_NAME='Xprinter (XP-80)';
 var PRINTER_PAPER_MM=80;
 var PRINTER_PRINT_MM=74;
@@ -606,11 +613,28 @@ function today(){return new Date().toISOString().split('T')[0];}
 function mkey(d){return articleDateOnly(d).substring(0,7);}
 function mlbl(k){var p=k.split('-');return ['Jan','Fev','Mar','Avr','Mai','Jun','Jul','Aou','Sep','Oct','Nov','Dec'][parseInt(p[1])-1]+' '+p[0];}
 
+function findCaisseUser(code){
+  for(var i=0;i<CAISSE_USERS.length;i++) if(CAISSE_USERS[i].code===code)return CAISSE_USERS[i];
+  return null;
+}
+function currentSellerName(){
+  return currentUser?currentUser.nom:'';
+}
+function updateSessionUser(){
+  var el=document.getElementById('session-user');
+  if(!el)return;
+  if(!currentUser){el.textContent='';return;}
+  el.textContent=(currentUser.role==='responsable'?'Responsable: ':'Vendeur: ')+currentUser.nom;
+}
 function unlockCaisse(){
   var inp=document.getElementById('caisse-code-input');
   var msg=document.getElementById('caisse-lock-msg');
   if(!inp)return;
-  if(inp.value===CAISSE_CODE){
+  var user=findCaisseUser(inp.value);
+  if(user){
+    currentUser=user;
+    updateSessionUser();
+    apiPost('logConnexion',{nom:user.nom,role:user.role},function(){});
     document.body.classList.remove('locked');
     startApp();
   }else{
@@ -621,6 +645,8 @@ function unlockCaisse(){
 }
 function fermerCaisse(){
   paramUnlocked=false;
+  currentUser=null;
+  updateSessionUser();
   hideParamLock();
   document.body.classList.add('locked');
   var secs=document.querySelectorAll('.sec');
@@ -807,6 +833,7 @@ function enregistrerBoissonsPanier(date,num){
 }
 function panierContientEntree(){for(var i=0;i<panier.length;i++) if(isEntreeLine(panier[i])) return true;return false;}
 function validerVente(){
+  if(!currentUser){alert('Veuillez ouvrir la caisse avec un code vendeur ou responsable.');return;}
   if(!panier.length){alert('Panier vide');return;}
   if(!verifierStockBoissonsPanier()) return;
   var client=document.getElementById('client').value||'Particulier';
@@ -824,7 +851,7 @@ function validerVente(){
     if(isBoissonLine(l)){
       var b=getBoisson(l.boissonId);
       if(b){b.stock-=l.nb;}
-      lignesArticles.push({date:date,num:num,nom:l.desc,qty:l.nb,prix:l.prix,montant:l.montant});
+      lignesArticles.push({date:date,num:num,nom:l.desc,qty:l.nb,prix:l.prix,montant:l.montant,vendeur:currentSellerName()});
     }
   }
   sv('boissons',B); // stock local mis Ã  jour
@@ -833,7 +860,8 @@ function validerVente(){
     num:num,date:date,client:client,guide:guide,chauffeur:nomChauf,
     panier:panier.slice(),total:total,totalEntrees:totalEntree,
     totalBoissons:totalBois,totalChaufBase:baseChauf,
-    commGuide:cg,commChauf:cc,avecChauf:chaufActif,pctChauf:pct
+    commGuide:cg,commChauf:cc,avecChauf:chaufActif,pctChauf:pct,
+    vendeur:currentSellerName()
   };
 
   // DÃ©sactive le bouton pendant l'envoi
@@ -1235,7 +1263,8 @@ function normalizeArticleSale(v){
       nom:v[2]||'',
       qty:cleanNum(v[3]),
       prix:cleanNum(v[4]),
-      montant:cleanNum(v[5])
+      montant:cleanNum(v[5]),
+      vendeur:v[6]||''
     };
   }
   return {
@@ -1244,7 +1273,8 @@ function normalizeArticleSale(v){
     nom:pickField(v,['nom','article','desc','designation','Nom','Article']),
     qty:cleanNum(pickField(v,['qty','qte','quantite','nb','Qty','Qte'])),
     prix:cleanNum(pickField(v,['prix','pv','price','Prix'])),
-    montant:cleanNum(pickField(v,['montant','total','amount','Montant']))
+    montant:cleanNum(pickField(v,['montant','total','amount','Montant'])),
+    vendeur:pickField(v,['vendeur','seller','caissier','Vendeur'])
   };
 }
 function articleDateOnly(d){
@@ -1322,7 +1352,7 @@ function articleAnalyticsRows(forceAll){
     var name=v.nom||'--',qty=cleanNum(v.qty),amount=cleanNum(v.montant),cat=articleCatalogByName(name),pa=cat?cleanNum(cat.pa):0,cost=pa*qty,margin=amount-cost;
     if(!map[name])map[name]={nom:name,qty:0,lignes:0,ca:0,cout:0,marge:0,stock:cat?cat.stock:''};
     map[name].qty+=qty;map[name].lignes++;map[name].ca+=amount;map[name].cout+=cost;map[name].marge+=margin;if(cat)map[name].stock=cat.stock;
-    var d=articleDisplayDate(v.date);if(!days[d])days[d]=[];days[d].push({nom:name,qty:qty,prix:v.prix||0,montant:amount,marge:margin});
+    var d=articleDisplayDate(v.date);if(!days[d])days[d]=[];days[d].push({nom:name,qty:qty,prix:v.prix||0,montant:amount,marge:margin,vendeur:v.vendeur||''});
   }
   var names=Object.keys(map).sort(function(a,b){return map[b].ca-map[a].ca;});
   for(var j=0;j<names.length;j++)rows.push(map[names[j]]);
@@ -1350,7 +1380,7 @@ function renderVBois(){
     var d=keys[k],arr=days[d],tot=0,mar=0;
     for(var i=0;i<arr.length;i++){tot+=arr[i].montant;mar+=arr[i].marge;}
     h+='<div class="hist-day-hdr"><span>'+articleDisplayDate(d)+'</span><span class="hist-day-stat">'+arr.length+' ligne(s) | CA '+tot.toLocaleString('fr-FR')+' Ar | Marge '+mar.toLocaleString('fr-FR')+' Ar</span></div>';
-    for(var j=0;j<arr.length;j++){var x=arr[j];h+='<div class="lline"><span>'+esc(x.nom)+' x '+x.qty+'</span><span style="color:#888">Prix: '+(x.prix||0).toLocaleString('fr-FR')+' Ar</span><span style="font-weight:bold">'+fmt(x.montant)+'</span></div>';}
+    for(var j=0;j<arr.length;j++){var x=arr[j];h+='<div class="lline"><span>'+esc(x.nom)+' x '+x.qty+(x.vendeur?' <span style="color:#888">('+esc(x.vendeur)+')</span>':'')+'</span><span style="color:#888">Prix: '+(x.prix||0).toLocaleString('fr-FR')+' Ar</span><span style="font-weight:bold">'+fmt(x.montant)+'</span></div>';}
   }
   log.innerHTML=h;
 }
