@@ -12,6 +12,8 @@ body{font-family:Arial,sans-serif;background:#f0f4f0;color:#222;font-size:14px}
 .nav-btn{padding:9px 18px;border:1px solid #ccc;border-radius:6px;background:#fff;color:#555;font-size:13px;cursor:pointer;font-weight:bold}
 .nav-btn:hover{background:#E1F5EE;border-color:#1D9E75}
 .nav-btn.active{background:#1D9E75;color:#fff;border-color:#1D9E75}
+.nav-btn.close-caisse{margin-left:auto;border-color:#BA7517;color:#633806}
+.nav-btn.close-caisse:hover{background:#FAEEDA;border-color:#BA7517;color:#633806}
 .sec{display:none}.sec.active{display:block}
 .hdr{display:flex;align-items:center;gap:14px;margin-bottom:1.2rem;padding:12px;background:#fff;border-radius:8px;border:1px solid #ddd}
 .logo-img{width:72px;height:72px;border-radius:50%;object-fit:cover;border:3px solid #3a5a1a;flex-shrink:0}
@@ -170,6 +172,7 @@ body:not(.locked) #caisse-lock{display:none!important}
   <button class="nav-btn" id="btn-boissons" onclick="goSec('boissons',this)">&#127862; Articles</button>
   <button class="nav-btn" id="btn-rapports" onclick="goSec('rapports',this)">&#128202; Rapports</button>
   <button class="nav-btn" id="btn-parametres" onclick="goSec('parametres',this)">&#9881; Parametres</button>
+  <button class="nav-btn close-caisse" id="btn-fermer-caisse" onclick="fermerCaisse()">&#128274; Fermer la caisse</button>
 </div>
 
 <div id="param-lock" class="param-section" style="display:none;border-color:#BA7517;background:#fffaf2">
@@ -614,6 +617,25 @@ function unlockCaisse(){
     if(msg)msg.textContent='Code incorrect.';
     inp.value='';
     inp.focus();
+  }
+}
+function fermerCaisse(){
+  paramUnlocked=false;
+  hideParamLock();
+  document.body.classList.add('locked');
+  var secs=document.querySelectorAll('.sec');
+  for(var i=0;i<secs.length;i++) secs[i].classList.remove('active');
+  var btns=document.querySelectorAll('.nav-btn');
+  for(var j=0;j<btns.length;j++) btns[j].classList.remove('active');
+  document.getElementById('sec-caisse').classList.add('active');
+  document.getElementById('btn-caisse').classList.add('active');
+  hideLoading();
+  var msg=document.getElementById('caisse-lock-msg');
+  if(msg)msg.textContent='';
+  var inp=document.getElementById('caisse-code-input');
+  if(inp){
+    inp.value='';
+    setTimeout(function(){inp.focus();},50);
   }
 }
 function showParamLock(){
@@ -1257,6 +1279,10 @@ function articleDateOnly(d){
   return s.substring(0,10);
 }
 function articleDateObj(d){var s=articleDateOnly(d);return s?new Date(s+'T00:00:00'):null;}
+function articleDisplayDate(d){
+  var s=articleDateOnly(d);
+  return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:(d||'Date non reconnue');
+}
 function articleIso(d){return d.toISOString().split('T')[0];}
 function articleStartOfWeek(d){var x=new Date(d.getFullYear(),d.getMonth(),d.getDate());var day=x.getDay()||7;x.setDate(x.getDate()-day+1);return x;}
 function articlePeriodRange(){
@@ -1296,7 +1322,7 @@ function articleAnalyticsRows(forceAll){
     var name=v.nom||'--',qty=cleanNum(v.qty),amount=cleanNum(v.montant),cat=articleCatalogByName(name),pa=cat?cleanNum(cat.pa):0,cost=pa*qty,margin=amount-cost;
     if(!map[name])map[name]={nom:name,qty:0,lignes:0,ca:0,cout:0,marge:0,stock:cat?cat.stock:''};
     map[name].qty+=qty;map[name].lignes++;map[name].ca+=amount;map[name].cout+=cost;map[name].marge+=margin;if(cat)map[name].stock=cat.stock;
-    var d=articleDateOnly(v.date)||'Date non reconnue';if(!days[d])days[d]=[];days[d].push({nom:name,qty:qty,prix:v.prix||0,montant:amount,marge:margin});
+    var d=articleDisplayDate(v.date);if(!days[d])days[d]=[];days[d].push({nom:name,qty:qty,prix:v.prix||0,montant:amount,marge:margin});
   }
   var names=Object.keys(map).sort(function(a,b){return map[b].ca-map[a].ca;});
   for(var j=0;j<names.length;j++)rows.push(map[names[j]]);
@@ -1323,7 +1349,7 @@ function renderVBois(){
   for(var k=0;k<keys.length;k++){
     var d=keys[k],arr=days[d],tot=0,mar=0;
     for(var i=0;i<arr.length;i++){tot+=arr[i].montant;mar+=arr[i].marge;}
-    h+='<div class="hist-day-hdr"><span>'+d+'</span><span class="hist-day-stat">'+arr.length+' ligne(s) | CA '+tot.toLocaleString('fr-FR')+' Ar | Marge '+mar.toLocaleString('fr-FR')+' Ar</span></div>';
+    h+='<div class="hist-day-hdr"><span>'+articleDisplayDate(d)+'</span><span class="hist-day-stat">'+arr.length+' ligne(s) | CA '+tot.toLocaleString('fr-FR')+' Ar | Marge '+mar.toLocaleString('fr-FR')+' Ar</span></div>';
     for(var j=0;j<arr.length;j++){var x=arr[j];h+='<div class="lline"><span>'+esc(x.nom)+' x '+x.qty+'</span><span style="color:#888">Prix: '+(x.prix||0).toLocaleString('fr-FR')+' Ar</span><span style="font-weight:bold">'+fmt(x.montant)+'</span></div>';}
   }
   log.innerHTML=h;
