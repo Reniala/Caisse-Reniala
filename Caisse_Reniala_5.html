@@ -304,9 +304,10 @@ body:not(.locked) #caisse-lock{display:none!important}
   <div class="rfilter">
     <label>Periode</label>
     <select id="ba-period" onchange="onArticlePeriodChange()">
+      <option value="all" selected>Toutes les ventes</option>
       <option value="today">Aujourd'hui</option>
       <option value="week">Cette semaine</option>
-      <option value="month" selected>Ce mois</option>
+      <option value="month">Ce mois</option>
       <option value="year">Cette annee</option>
       <option value="custom">Personnalisee</option>
     </select>
@@ -386,7 +387,7 @@ body:not(.locked) #caisse-lock{display:none!important}
         <div style="font-weight:bold">Recharger depuis Google Sheets</div>
         <div style="font-size:11px;color:#888">Synchronise la caisse avec les derniÃ¨res ventes enregistrÃ©es dans le Sheet (utile si un autre poste a saisi des ventes).</div>
       </div>
-      <button class="btn1" onclick="apiGet(function(){initRap();renderBoissons();alert('Synchronisation OK â€” '+VE.length+' ventes entrÃ©es, '+VB.length+' ventes articles.');})" style="white-space:nowrap">&#8635; Synchroniser</button>
+      <button class="btn1" onclick="apiGet(function(){initRap();renderBoissons();renderArticleAnalytics();alert('Synchronisation OK - '+VE.length+' ventes entrees, '+VB.length+' ventes articles.');})" style="white-space:nowrap">&#8635; Synchroniser</button>
     </div>
     <div class="param-row" style="margin-top:4px">
       <div>
@@ -1229,7 +1230,8 @@ function articleIso(d){return d.toISOString().split('T')[0];}
 function articleStartOfWeek(d){var x=new Date(d.getFullYear(),d.getMonth(),d.getDate());var day=x.getDay()||7;x.setDate(x.getDate()-day+1);return x;}
 function articlePeriodRange(){
   var sel=document.getElementById('ba-period'),p=sel?sel.value:'month',now=new Date(),start,end;
-  if(p==='today'){start=new Date(now.getFullYear(),now.getMonth(),now.getDate());end=new Date(start);}
+  if(p==='all'){start=new Date(1900,0,1);end=new Date(2100,11,31);}
+  else if(p==='today'){start=new Date(now.getFullYear(),now.getMonth(),now.getDate());end=new Date(start);}
   else if(p==='week'){start=articleStartOfWeek(now);end=new Date(start);end.setDate(start.getDate()+6);}
   else if(p==='year'){start=new Date(now.getFullYear(),0,1);end=new Date(now.getFullYear(),11,31);}
   else if(p==='custom'){
@@ -1237,7 +1239,7 @@ function articlePeriodRange(){
     start=s?new Date(s+'T00:00:00'):new Date(now.getFullYear(),now.getMonth(),1);
     end=e?new Date(e+'T00:00:00'):new Date(now.getFullYear(),now.getMonth()+1,0);
   }else{start=new Date(now.getFullYear(),now.getMonth(),1);end=new Date(now.getFullYear(),now.getMonth()+1,0);}
-  return {start:start,end:end,label:articleIso(start)+' au '+articleIso(end)};
+  return {start:start,end:end,label:p==='all'?'Toutes les ventes':articleIso(start)+' au '+articleIso(end)};
 }
 function onArticlePeriodChange(){
   var custom=document.getElementById('ba-period').value==='custom';
