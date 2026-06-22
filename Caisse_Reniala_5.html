@@ -1228,16 +1228,11 @@ function normalizeArticleSale(v){
 function articleDateOnly(d){
   var s=(d||'').toString();
   if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;
-  var shortEn=s.match(/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})$/i);
-  if(shortEn){
+  var en=s.match(/(?:Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})(?:\s+(\d{4}))?/i);
+  if(en){
     var months={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
-    var y=new Date().getFullYear();
-    return articleIso(new Date(y,months[shortEn[2].toLowerCase()],parseInt(shortEn[3],10)));
-  }
-  var longEn=s.match(/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})\s+(\d{4})$/i);
-  if(longEn){
-    var months2={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
-    return articleIso(new Date(parseInt(longEn[4],10),months2[longEn[2].toLowerCase()],parseInt(longEn[3],10)));
+    var y=en[3]?parseInt(en[3],10):new Date().getFullYear();
+    return articleIso(new Date(y,months[en[1].toLowerCase()],parseInt(en[2],10)));
   }
   if(s.indexOf('T')>0){
     var dt=new Date(s);
@@ -1309,7 +1304,6 @@ function articleAnalyticsRows(forceAll){
 }
 function renderArticleAnalytics(){
   var data=articleAnalyticsRows(),rows=data.rows,h='';
-  if(!rows.length&&VB.length){data=articleAnalyticsRows(true);rows=data.rows;}
   if(!rows.length){
     var msg=VB.length?'Aucune vente article sur cette periode ('+VB.length+' vente(s) chargee(s) depuis Google Sheets)':'Aucune vente article recue depuis Google Sheets';
     document.getElementById('article-analysis').innerHTML='<div class="empty">'+msg+'</div>';renderVBois();return;
@@ -1324,7 +1318,6 @@ function renderArticleAnalytics(){
 function renderVBois(){
   var log=document.getElementById('bois-log');
   var data=articleAnalyticsRows(),days=data.days,keys=Object.keys(days).sort().reverse();
-  if(!keys.length&&VB.length){data=articleAnalyticsRows(true);days=data.days;keys=Object.keys(days).sort().reverse();}
   if(!keys.length){log.innerHTML='<div class="empty">Aucune vente enregistree sur cette periode</div>';return;}
   var h='';
   for(var k=0;k<keys.length;k++){
