@@ -1239,7 +1239,7 @@ function articlePeriodRange(){
     start=s?new Date(s+'T00:00:00'):new Date(now.getFullYear(),now.getMonth(),1);
     end=e?new Date(e+'T00:00:00'):new Date(now.getFullYear(),now.getMonth()+1,0);
   }else{start=new Date(now.getFullYear(),now.getMonth(),1);end=new Date(now.getFullYear(),now.getMonth()+1,0);}
-  return {start:start,end:end,label:p==='all'?'Toutes les ventes':articleIso(start)+' au '+articleIso(end)};
+  return {start:start,end:end,label:p==='all'?'Toutes les ventes':articleIso(start)+' au '+articleIso(end),all:p==='all'};
 }
 function onArticlePeriodChange(){
   var custom=document.getElementById('ba-period').value==='custom';
@@ -1250,17 +1250,21 @@ function onArticlePeriodChange(){
   }
   renderArticleAnalytics();
 }
-function articleInRange(v,r){var d=articleDateObj(v.date);return d&&d>=r.start&&d<=r.end;}
+function articleInRange(v,r){
+  if(r&&r.all)return true;
+  var d=articleDateObj(v.date);
+  if(!d&&r&&r.label==='Toutes les ventes')return true;
+  return d&&d>=r.start&&d<=r.end;
+}
 function articleCatalogByName(n){for(var i=0;i<B.length;i++) if((B[i].nom||'')===n)return B[i];return null;}
-function articleAnalyticsRows(){
-  var r=articlePeriodRange(),rows=[],map={},days={};
+function articleAnalyticsRows(forceAll){
+  var r=forceAll?{start:new Date(1900,0,1),end:new Date(2100,11,31),label:'Toutes les ventes',all:true}:articlePeriodRange(),rows=[],map={},days={};
   for(var i=0;i<VB.length;i++){
-    var v=VB[i];if(!articleInRange(v,r))continue;
-    v=normalizeArticleSale(v);
+    var v=normalizeArticleSale(VB[i]);if(!articleInRange(v,r))continue;
     var name=v.nom||'--',qty=cleanNum(v.qty),amount=cleanNum(v.montant),cat=articleCatalogByName(name),pa=cat?cleanNum(cat.pa):0,cost=pa*qty,margin=amount-cost;
     if(!map[name])map[name]={nom:name,qty:0,lignes:0,ca:0,cout:0,marge:0,stock:cat?cat.stock:''};
     map[name].qty+=qty;map[name].lignes++;map[name].ca+=amount;map[name].cout+=cost;map[name].marge+=margin;if(cat)map[name].stock=cat.stock;
-    var d=articleDateOnly(v.date);if(!days[d])days[d]=[];days[d].push({nom:name,qty:qty,prix:v.prix||0,montant:amount,marge:margin});
+    var d=articleDateOnly(v.date)||'Date non reconnue';if(!days[d])days[d]=[];days[d].push({nom:name,qty:qty,prix:v.prix||0,montant:amount,marge:margin});
   }
   var names=Object.keys(map).sort(function(a,b){return map[b].ca-map[a].ca;});
   for(var j=0;j<names.length;j++)rows.push(map[names[j]]);
@@ -1268,6 +1272,7 @@ function articleAnalyticsRows(){
 }
 function renderArticleAnalytics(){
   var data=articleAnalyticsRows(),rows=data.rows,h='';
+  if(!rows.length&&VB.length){data=articleAnalyticsRows(true);rows=data.rows;}
   if(!rows.length){
     var msg=VB.length?'Aucune vente article sur cette periode ('+VB.length+' vente(s) chargee(s) depuis Google Sheets)':'Aucune vente article recue depuis Google Sheets';
     document.getElementById('article-analysis').innerHTML='<div class="empty">'+msg+'</div>';renderVBois();return;
@@ -1282,6 +1287,7 @@ function renderArticleAnalytics(){
 function renderVBois(){
   var log=document.getElementById('bois-log');
   var data=articleAnalyticsRows(),days=data.days,keys=Object.keys(days).sort().reverse();
+  if(!keys.length&&VB.length){data=articleAnalyticsRows(true);days=data.days;keys=Object.keys(days).sort().reverse();}
   if(!keys.length){log.innerHTML='<div class="empty">Aucune vente enregistree sur cette periode</div>';return;}
   var h='';
   for(var k=0;k<keys.length;k++){
@@ -1647,4 +1653,3 @@ setTimeout(function(){
 </script>
 </body>
 </html>
-
