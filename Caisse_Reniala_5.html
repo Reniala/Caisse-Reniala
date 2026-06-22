@@ -1189,20 +1189,56 @@ function cleanNum(v){
   var n=parseInt((v||'').toString().replace(/\s/g,''),10);
   return isNaN(n)?0:n;
 }
+function pickField(o,names){
+  if(!o)return '';
+  for(var i=0;i<names.length;i++){
+    var k=names[i];
+    if(o[k]!==undefined&&o[k]!==null&&o[k]!=='')return o[k];
+  }
+  var keys=Object.keys(o);
+  for(var j=0;j<keys.length;j++){
+    var clean=keys[j].toLowerCase().replace(/\s/g,'');
+    for(var n=0;n<names.length;n++){
+      if(clean===names[n].toLowerCase().replace(/\s/g,''))return o[keys[j]];
+    }
+  }
+  return '';
+}
 function normalizeArticleSale(v){
   v=v||{};
+  if(Array.isArray(v)){
+    return {
+      date:articleDateOnly(v[0]),
+      num:v[1]||'',
+      nom:v[2]||'',
+      qty:cleanNum(v[3]),
+      prix:cleanNum(v[4]),
+      montant:cleanNum(v[5])
+    };
+  }
   return {
-    date:articleDateOnly(v.date||v.Date||v.DATE),
-    num:v.num||v.numero||v.n||'',
-    nom:v.nom||v.article||v.desc||v.designation||'',
-    qty:cleanNum(v.qty||v.qte||v.quantite||v.nb||v.Qty),
-    prix:cleanNum(v.prix||v.pv||v.price),
-    montant:cleanNum(v.montant||v.total||v.amount)
+    date:articleDateOnly(pickField(v,['date','Date','DATE'])),
+    num:pickField(v,['num','numero','n','N']),
+    nom:pickField(v,['nom','article','desc','designation','Nom','Article']),
+    qty:cleanNum(pickField(v,['qty','qte','quantite','nb','Qty','Qte'])),
+    prix:cleanNum(pickField(v,['prix','pv','price','Prix'])),
+    montant:cleanNum(pickField(v,['montant','total','amount','Montant']))
   };
 }
 function articleDateOnly(d){
   var s=(d||'').toString();
   if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;
+  var shortEn=s.match(/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})$/i);
+  if(shortEn){
+    var months={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+    var y=new Date().getFullYear();
+    return articleIso(new Date(y,months[shortEn[2].toLowerCase()],parseInt(shortEn[3],10)));
+  }
+  var longEn=s.match(/^(Sun|Mon|Tue|Wed|Thu|Fri|Sat)\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2})\s+(\d{4})$/i);
+  if(longEn){
+    var months2={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+    return articleIso(new Date(parseInt(longEn[4],10),months2[longEn[2].toLowerCase()],parseInt(longEn[3],10)));
+  }
   if(s.indexOf('T')>0){
     var dt=new Date(s);
     if(!isNaN(dt.getTime())){
@@ -1260,7 +1296,8 @@ function articleCatalogByName(n){for(var i=0;i<B.length;i++) if((B[i].nom||'')==
 function articleAnalyticsRows(forceAll){
   var r=forceAll?{start:new Date(1900,0,1),end:new Date(2100,11,31),label:'Toutes les ventes',all:true}:articlePeriodRange(),rows=[],map={},days={};
   for(var i=0;i<VB.length;i++){
-    var v=normalizeArticleSale(VB[i]);if(!articleInRange(v,r))continue;
+    var v=normalizeArticleSale(VB[i]);
+    if(!(r&&r.all)&&!articleInRange(v,r))continue;
     var name=v.nom||'--',qty=cleanNum(v.qty),amount=cleanNum(v.montant),cat=articleCatalogByName(name),pa=cat?cleanNum(cat.pa):0,cost=pa*qty,margin=amount-cost;
     if(!map[name])map[name]={nom:name,qty:0,lignes:0,ca:0,cout:0,marge:0,stock:cat?cat.stock:''};
     map[name].qty+=qty;map[name].lignes++;map[name].ca+=amount;map[name].cout+=cost;map[name].marge+=margin;if(cat)map[name].stock=cat.stock;
