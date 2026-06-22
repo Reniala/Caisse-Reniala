@@ -153,7 +153,7 @@ body:not(.locked) #caisse-lock{display:none!important}
     <div><div class="rtitle">Reserve Reniala</div><div class="rsub">Acces caisse</div></div>
   </div>
   <div class="irow">
-    <div class="fg" style="max-width:280px"><label>Code d'acces</label><input type="password" id="caisse-code-input" autocomplete="off" onkeydown="if(event.key==='Enter')unlockCaisse()"/></div>
+    <div class="fg" style="max-width:280px"><label>Code d'acces</label><input type="password" id="caisse-code-input" name="reniala-access-code" autocomplete="new-password" autocapitalize="off" spellcheck="false" onkeydown="if(event.key==='Enter')unlockCaisse()"/></div>
     <button class="btn1" onclick="unlockCaisse()" style="align-self:flex-end">Entrer</button>
   </div>
   <div id="caisse-lock-msg" style="font-size:12px;color:#9b1c1c;margin-top:8px"></div>
@@ -614,7 +614,16 @@ function mkey(d){return articleDateOnly(d).substring(0,7);}
 function mlbl(k){var p=k.split('-');return ['Jan','Fev','Mar','Avr','Mai','Jun','Jul','Aou','Sep','Oct','Nov','Dec'][parseInt(p[1])-1]+' '+p[0];}
 
 function findCaisseUser(code){
-  for(var i=0;i<CAISSE_USERS.length;i++) if(CAISSE_USERS[i].code===code)return CAISSE_USERS[i];
+  function cleanAccessCode(v){
+    return (v||'').toString()
+      .replace(/[\u200B-\u200D\uFEFF]/g,'')
+      .trim()
+      .toUpperCase();
+  }
+  var c=cleanAccessCode(code);
+  for(var i=0;i<CAISSE_USERS.length;i++){
+    if(cleanAccessCode(CAISSE_USERS[i].code)===c)return CAISSE_USERS[i];
+  }
   return null;
 }
 function currentSellerName(){
@@ -832,6 +841,23 @@ function enregistrerBoissonsPanier(date,num){
   sv('boissons',B);sv('ventesBoissons',VB);
 }
 function panierContientEntree(){for(var i=0;i<panier.length;i++) if(isEntreeLine(panier[i])) return true;return false;}
+function preparerClientSuivant(){
+  panier=[];tarifSel=null;chaufActif=false;
+  document.getElementById('client').value='';
+  document.getElementById('guide').value='';
+  document.getElementById('chauffeur').value='';
+  document.getElementById('chauffeur-libre').value='';
+  document.getElementById('numfact').value='';
+  document.getElementById('nbpax').value=1;
+  document.getElementById('cbqty').value=1;
+  document.getElementById('chauf-chk').checked=false;
+  document.getElementById('chauf-box').classList.remove('on');
+  document.getElementById('chauf-fields').classList.remove('show');
+  document.getElementById('chauf-amt-lbl').style.display='none';
+  renderPanier();
+  renderTarifs();
+  renderCaisseBoissons();
+}
 function validerVente(){
   if(!currentUser){alert('Veuillez ouvrir la caisse avec un code vendeur ou responsable.');return;}
   if(!panier.length){alert('Panier vide');return;}
@@ -890,6 +916,7 @@ function validerVente(){
       afterArticles(null);
     }
     derniereVente=v;
+    preparerClientSuivant();
     renderCaisseBoissons();renderTickets();
     document.getElementById('btn-tickets').click();
     goHTab('last',document.getElementById('htab-last'));
@@ -905,6 +932,7 @@ function validerVente(){
       VB=lignesArticles.concat(VB);
       apiPost('addVentesArticles',lignesArticles,afterArticles);
     } else { afterArticles(null); }
+    preparerClientSuivant();
     renderCaisseBoissons();renderTickets();
     document.getElementById('btn-tickets').click();
     goHTab('last',document.getElementById('htab-last'));
