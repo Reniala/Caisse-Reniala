@@ -530,6 +530,7 @@ function apiGet(callback){
       _apiLoaded=true;
       showNotice('Parametres partages sauvegardes.');
       if(callback) callback();
+      if(document.getElementById('article-analysis')) renderArticleAnalytics();
     } else {
       showApiError('Erreur: '+data.error);
     }
@@ -1598,6 +1599,7 @@ function startApp(){
     initRap();
     renderJour();
     renderBoissons();
+    renderArticleAnalytics();
     renderParams();
   });
 }
