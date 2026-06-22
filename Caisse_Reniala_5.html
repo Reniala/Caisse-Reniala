@@ -525,7 +525,7 @@ function apiGet(callback){
     if(data.ok){
       applyConfigFromApi(data);
       VE=data.ventesEntree||[];
-      VB=data.ventesBoissons||[];
+      VB=(data.ventesBoissons||data.ventesArticles||[]).map(normalizeArticleSale);
       NID=data.nextId||1;
       _apiLoaded=true;
       showNotice('Parametres partages sauvegardes.');
@@ -1183,6 +1183,22 @@ function vendreBoisson(){
   var id=parseInt(document.getElementById('bsel').value),qty=parseInt(document.getElementById('bqty').value)||1,prix=parseInt(document.getElementById('bprix').value)||0;
   enregistrerVenteBoisson(id,qty,prix);
 }
+function cleanNum(v){
+  if(typeof v==='number')return v;
+  var n=parseInt((v||'').toString().replace(/\s/g,''),10);
+  return isNaN(n)?0:n;
+}
+function normalizeArticleSale(v){
+  v=v||{};
+  return {
+    date:articleDateOnly(v.date||v.Date||v.DATE),
+    num:v.num||v.numero||v.n||'',
+    nom:v.nom||v.article||v.desc||v.designation||'',
+    qty:cleanNum(v.qty||v.qte||v.quantite||v.nb||v.Qty),
+    prix:cleanNum(v.prix||v.pv||v.price),
+    montant:cleanNum(v.montant||v.total||v.amount)
+  };
+}
 function articleDateOnly(d){
   var s=(d||'').toString();
   if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;
@@ -1192,6 +1208,19 @@ function articleDateOnly(d){
       dt=new Date(dt.getTime()+12*60*60*1000);
       return dt.toISOString().split('T')[0];
     }
+  }
+  if(/^\d+(\.\d+)?$/.test(s)){
+    var serial=parseFloat(s);
+    if(serial>20000&&serial<80000){
+      var base=new Date(Date.UTC(1899,11,30));
+      base.setUTCDate(base.getUTCDate()+serial);
+      return base.toISOString().split('T')[0];
+    }
+  }
+  var parsed=new Date(s);
+  if(!isNaN(parsed.getTime())){
+    parsed=new Date(parsed.getTime()+12*60*60*1000);
+    return parsed.toISOString().split('T')[0];
   }
   return s.substring(0,10);
 }
@@ -1225,7 +1254,8 @@ function articleAnalyticsRows(){
   var r=articlePeriodRange(),rows=[],map={},days={};
   for(var i=0;i<VB.length;i++){
     var v=VB[i];if(!articleInRange(v,r))continue;
-    var name=v.nom||'--',qty=parseInt(v.qty)||0,amount=parseInt(v.montant)||0,cat=articleCatalogByName(name),pa=cat?(parseInt(cat.pa)||0):0,cost=pa*qty,margin=amount-cost;
+    v=normalizeArticleSale(v);
+    var name=v.nom||'--',qty=cleanNum(v.qty),amount=cleanNum(v.montant),cat=articleCatalogByName(name),pa=cat?cleanNum(cat.pa):0,cost=pa*qty,margin=amount-cost;
     if(!map[name])map[name]={nom:name,qty:0,lignes:0,ca:0,cout:0,marge:0,stock:cat?cat.stock:''};
     map[name].qty+=qty;map[name].lignes++;map[name].ca+=amount;map[name].cout+=cost;map[name].marge+=margin;if(cat)map[name].stock=cat.stock;
     var d=articleDateOnly(v.date);if(!days[d])days[d]=[];days[d].push({nom:name,qty:qty,prix:v.prix||0,montant:amount,marge:margin});
@@ -1236,7 +1266,10 @@ function articleAnalyticsRows(){
 }
 function renderArticleAnalytics(){
   var data=articleAnalyticsRows(),rows=data.rows,h='';
-  if(!rows.length){document.getElementById('article-analysis').innerHTML='<div class="empty">Aucune vente article sur cette periode</div>';renderVBois();return;}
+  if(!rows.length){
+    var msg=VB.length?'Aucune vente article sur cette periode ('+VB.length+' vente(s) chargee(s) depuis Google Sheets)':'Aucune vente article recue depuis Google Sheets';
+    document.getElementById('article-analysis').innerHTML='<div class="empty">'+msg+'</div>';renderVBois();return;
+  }
   var tq=0,tca=0,tcost=0,tm=0;
   h+='<table><thead><tr><th>Article</th><th class="num">Lignes</th><th class="num">Qte vendue</th><th class="num">CA</th><th class="num">Cout achat</th><th class="num">Marge</th><th class="num">Stock</th></tr></thead><tbody>';
   for(var i=0;i<rows.length;i++){var r=rows[i];tq+=r.qty;tca+=r.ca;tcost+=r.cout;tm+=r.marge;h+='<tr><td>'+esc(r.nom)+'</td><td class="num">'+r.lignes+'</td><td class="num">'+r.qty+'</td><td class="num">'+r.ca.toLocaleString('fr-FR')+'</td><td class="num">'+r.cout.toLocaleString('fr-FR')+'</td><td class="num" style="color:'+(r.marge>=0?'#1D9E75':'#c00')+'">'+r.marge.toLocaleString('fr-FR')+'</td><td class="num">'+r.stock+'</td></tr>';}
