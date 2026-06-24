@@ -285,7 +285,7 @@ body:not(.locked) #caisse-lock{display:none!important}
     <div class="hist-nav">
       <label>&#128197; Jour de visite :</label>
       <select id="hist-jour-sel" onchange="renderHistorique()"></select>
-      <button class="btn2" onclick="renderHistorique()" style="padding:7px 14px">&#128260; Actualiser</button>
+      <button class="btn2" onclick="initHistorique()" style="padding:7px 14px">&#128260; Actualiser</button>
     </div>
     <div id="hist-content"><div class="empty">Aucune vente enregistree.</div></div>
   </div>
@@ -540,12 +540,15 @@ function apiGet(callback){
   .then(function(data){
     if(data.ok){
       applyConfigFromApi(data);
-      VE=data.ventesEntree||[];
+      VE=(data.ventesEntree||[]).map(normalizeVenteEntree);
       VB=(data.ventesBoissons||data.ventesArticles||[]).map(normalizeArticleSale);
       NID=data.nextId||1;
+      setDerniereVenteDepuisHistorique();
       _apiLoaded=true;
       showNotice('Parametres partages sauvegardes.');
       if(callback) callback();
+      if(document.getElementById('tprev')) renderTickets();
+      if(document.getElementById('hpanel-hist')&&document.getElementById('hpanel-hist').classList.contains('active')) initHistorique();
       if(document.getElementById('article-analysis')) renderArticleAnalytics();
     } else {
       showApiError('Erreur: '+data.error);
@@ -732,6 +735,7 @@ function goSec(id,btn){
   btn.classList.add('active');
   if(id==='boissons'){renderBoissons();renderArticleAnalytics();}
   if(id==='rapports'){initRap();renderJour();}
+  if(id==='tickets'){if(!derniereVente)setDerniereVenteDepuisHistorique();renderTickets();}
   if(id==='parametres') renderParams();
 }
 function goRap(id,btn){
@@ -1001,12 +1005,13 @@ function goHTab(id,btn){
   for(var i=0;i<tabs.length;i++) tabs[i].classList.remove('active');
   document.getElementById('hpanel-'+id).classList.add('active');
   btn.classList.add('active');
+  if(id==='last'){if(!derniereVente)setDerniereVenteDepuisHistorique();renderTickets();}
   if(id==='hist') initHistorique();
 }
 
 function initHistorique(){
   var days={};
-  for(var i=0;i<VE.length;i++) days[VE[i].date]=1;
+  for(var i=0;i<VE.length;i++) days[articleDateOnly(VE[i].date)]=1;
   var sel=document.getElementById('hist-jour-sel');
   var prev=sel.value;
   var sorted=Object.keys(days).sort().reverse();
@@ -1018,9 +1023,7 @@ function initHistorique(){
   }
   for(var i=0;i<sorted.length;i++){
     var d=sorted[i];
-    var parts=d.split('-');
-    var label=parts[2]+'/'+parts[1]+'/'+parts[0];
-    sel.innerHTML+='<option value="'+d+'">'+label+'</option>';
+    sel.innerHTML+='<option value="'+d+'">'+dateFr(d)+'</option>';
   }
   sel.value=(prev&&days[prev])?prev:sorted[0];
   renderHistorique();
@@ -1030,12 +1033,11 @@ function renderHistorique(){
   var d=document.getElementById('hist-jour-sel').value;
   if(!d){document.getElementById('hist-content').innerHTML='<div class="empty">Aucun jour selectionne.</div>';return;}
   var ve=[];
-  for(var i=0;i<VE.length;i++) if(VE[i].date===d) ve.push(VE[i]);
+  for(var i=0;i<VE.length;i++) if(articleDateOnly(VE[i].date)===d) ve.push(VE[i]);
   if(!ve.length){document.getElementById('hist-content').innerHTML='<div class="empty">Aucune vente ce jour.</div>';return;}
   var totE=0,totG=0,totC=0,totPax=0;
   for(var i=0;i<ve.length;i++){totE+=venteTotalEntrees(ve[i]);totG+=ve[i].commGuide;totC+=ve[i].commChauf||0;totPax+=ventePax(ve[i]);}
-  var parts=d.split('-');
-  var dateLabel=parts[2]+'/'+parts[1]+'/'+parts[0];
+  var dateLabel=dateFr(d);
   var h='<div class="hist-day-hdr">'+
     '<span>&#128197; '+dateLabel+' &mdash; '+ve.length+' vente(s) &mdash; '+totPax+' visiteur(s)</span>'+
     '<span class="hist-day-stat">CA: '+totE.toLocaleString('fr-FR')+' Ar &nbsp;|&nbsp; Guides: '+totG.toLocaleString('fr-FR')+' Ar'+(totC?' &nbsp;|&nbsp; Chauf: '+totC.toLocaleString('fr-FR')+' Ar':'')+' </span>'+
@@ -1079,7 +1081,7 @@ function buildHistTicketMini(v){
 
   var tkClient='<div class="ticket" style="min-width:200px;max-width:240px">'+tkHdr('bc','Ticket Client')+
     '<div class="tline"><span>N&#176;</span><span>'+v.num+'</span></div>'+
-    '<div class="tline"><span>Date</span><span>'+v.date+'</span></div>'+
+    '<div class="tline"><span>Date</span><span>'+dateFr(v.date)+'</span></div>'+
     '<div class="tline"><span>Client</span><span>'+v.client+'</span></div>'+
     '<div class="tline"><span>Guide</span><span>'+v.guide+'</span></div>'+
     '<div style="border-top:1px dashed #bbb;margin:6px 0"></div>'+ligC+
@@ -1090,7 +1092,7 @@ function buildHistTicketMini(v){
 
   var tkGuide='<div class="ticket" style="min-width:200px;max-width:240px">'+tkHdr('bg','Ticket Guide')+
     '<div class="tline"><span>N&#176;</span><span>'+v.num+'</span></div>'+
-    '<div class="tline"><span>Date</span><span>'+v.date+'</span></div>'+
+    '<div class="tline"><span>Date</span><span>'+dateFr(v.date)+'</span></div>'+
     '<div class="tline"><span>Guide</span><span><strong>'+v.guide+'</strong></span></div>'+
     '<div class="tline"><span>Client</span><span>'+v.client+'</span></div>'+
     '<div style="border-top:1px dashed #bbb;margin:6px 0"></div>'+ligG+
@@ -1102,7 +1104,7 @@ function buildHistTicketMini(v){
   if(v.avecChauf){
     tkChauf='<div class="ticket" style="min-width:200px;max-width:240px">'+tkHdr('bch','Ticket Chauffeur')+
       '<div class="tline"><span>N&#176;</span><span>'+v.num+'</span></div>'+
-      '<div class="tline"><span>Date</span><span>'+v.date+'</span></div>'+
+      '<div class="tline"><span>Date</span><span>'+dateFr(v.date)+'</span></div>'+
       '<div class="tline"><span>Chauffeur</span><span><strong>'+v.chauffeur+'</strong></span></div>'+
       '<div class="tline"><span>Client</span><span>'+v.client+'</span></div>'+
       '<div style="border-top:1px dashed #bbb;margin:6px 0"></div>'+
@@ -1132,7 +1134,13 @@ function reprinterTicketHist(venteId, type){
 
 
 function renderTickets(){
-  if(!derniereVente) return;
+  if(!derniereVente){
+    var tp=document.getElementById('tprev');
+    if(tp) tp.innerHTML='<div class="empty">Aucune vente disponible.</div>';
+    var pb=document.getElementById('print-btns');
+    if(pb) pb.style.display='none';
+    return;
+  }
   var v=derniereVente;
   var ligC='',ligG='',hasGuideLines=false;
   for(var i=0;i<v.panier.length;i++){
@@ -1153,7 +1161,7 @@ function renderTickets(){
   var tkChauf=v.avecChauf?
     '<div class="ticket">'+tkHdr('bch','Ticket Chauffeur-Guide')+
     '<div class="tline"><span>N&#176;</span><span>'+v.num+'</span></div>'+
-    '<div class="tline"><span>Date</span><span>'+v.date+'</span></div>'+
+    '<div class="tline"><span>Date</span><span>'+dateFr(v.date)+'</span></div>'+
     '<div class="tline"><span>Chauffeur-guide</span><span><strong>'+v.chauffeur+'</strong></span></div>'+
     '<div class="tline" style="color:#888;font-size:10px"><span>Guide accompagnateur</span><span>'+v.guide+'</span></div>'+
     '<div class="tline"><span>Client</span><span>'+v.client+'</span></div>'+
@@ -1169,7 +1177,7 @@ function renderTickets(){
   document.getElementById('tprev').innerHTML='<div class="tprev">'+
     '<div class="ticket">'+tkHdr('bc','Ticket Client')+
     '<div class="tline"><span>N&#176;</span><span>'+v.num+'</span></div>'+
-    '<div class="tline"><span>Date</span><span>'+v.date+'</span></div>'+
+    '<div class="tline"><span>Date</span><span>'+dateFr(v.date)+'</span></div>'+
     '<div class="tline"><span>Client</span><span>'+v.client+'</span></div>'+
     '<div class="tline"><span>Guide accompagnateur</span><span>'+v.guide+'</span></div>'+
     '<div style="border-top:1px dashed #bbb;margin:6px 0"></div>'+ligC+
@@ -1177,7 +1185,7 @@ function renderTickets(){
     '<div style="text-align:center;margin-top:12px;font-size:10px;color:#888">Merci pour votre visite &middot; Thank you</div></div>'+
     '<div class="ticket">'+tkHdr('bg','Ticket Guide Accompagnateur')+
     '<div class="tline"><span>N&#176;</span><span>'+v.num+'</span></div>'+
-    '<div class="tline"><span>Date</span><span>'+v.date+'</span></div>'+
+    '<div class="tline"><span>Date</span><span>'+dateFr(v.date)+'</span></div>'+
     '<div class="tline"><span>Guide</span><span><strong>'+v.guide+'</strong></span></div>'+
     '<div class="tline"><span>Client</span><span>'+v.client+'</span></div>'+
     '<div style="border-top:1px dashed #bbb;margin:6px 0"></div>'+ligG+
@@ -1340,6 +1348,77 @@ function normalizeArticleSale(v){
     vendeur:pickField(v,['vendeur','seller','caissier','Vendeur'])
   };
 }
+function parsePanierValue(v){
+  if(Array.isArray(v)) return v;
+  if(!v) return [];
+  if(typeof v==='string'){
+    try{
+      var p=JSON.parse(v);
+      return Array.isArray(p)?p:[];
+    }catch(e){return [];}
+  }
+  return [];
+}
+function normalizeVenteEntree(v,idx){
+  v=v||{};
+  var o;
+  if(Array.isArray(v)){
+    o={
+      id:cleanNum(v[0]),
+      num:v[1]||'',
+      date:articleDateOnly(v[2]),
+      client:v[3]||'Particulier',
+      guide:v[4]||'--',
+      chauffeur:v[5]||'',
+      avecChauf:(v[6]===true||v[6]==='TRUE'||v[6]==='true'),
+      pctChauf:cleanNum(v[7])||10,
+      panier:parsePanierValue(v[8]),
+      total:cleanNum(v[9]),
+      totalEntrees:cleanNum(v[10]),
+      totalBoissons:cleanNum(v[11]),
+      totalChaufBase:cleanNum(v[12]),
+      commGuide:cleanNum(v[13]),
+      commChauf:cleanNum(v[14]),
+      vendeur:v[15]||''
+    };
+  }else{
+    o=Object.assign({},v);
+    o.id=cleanNum(pickField(v,['id','ID','Id']))||cleanNum(o.id);
+    o.num=pickField(v,['num','numero','n','N','Num'])||o.num||'';
+    o.date=articleDateOnly(pickField(v,['date','Date','DATE'])||o.date);
+    o.client=pickField(v,['client','Client'])||o.client||'Particulier';
+    o.guide=pickField(v,['guide','Guide'])||o.guide||'--';
+    o.chauffeur=pickField(v,['chauffeur','Chauffeur'])||o.chauffeur||'';
+    var ac=pickField(v,['avecChauf','avecChauffeur','AvecChauf','chauffeurActif'])||o.avecChauf;
+    o.avecChauf=(ac===true||ac==='TRUE'||ac==='true');
+    o.pctChauf=cleanNum(pickField(v,['pctChauf','pct','PctChauf']))||cleanNum(o.pctChauf)||10;
+    o.panier=parsePanierValue(o.panier||pickField(v,['panier','Panier','lignes']));
+    o.total=cleanNum(o.total||pickField(v,['total','Total']));
+    o.totalEntrees=cleanNum(o.totalEntrees||pickField(v,['totalEntrees','TotalEntrees']));
+    o.totalBoissons=cleanNum(o.totalBoissons||pickField(v,['totalBoissons','TotalBoissons']));
+    o.totalChaufBase=cleanNum(o.totalChaufBase||pickField(v,['totalChaufBase','TotalChaufBase']));
+    o.commGuide=cleanNum(o.commGuide||pickField(v,['commGuide','commissionGuide','CommGuide']));
+    o.commChauf=cleanNum(o.commChauf||pickField(v,['commChauf','commissionChauf','CommChauf']));
+    o.vendeur=pickField(v,['vendeur','seller','caissier','Vendeur'])||o.vendeur||'';
+  }
+  o._idx=idx||0;
+  return o;
+}
+function venteSortKey(v){
+  var d=articleDateOnly(v.date);
+  var t=/^\d{4}-\d{2}-\d{2}$/.test(d)?new Date(d+'T00:00:00').getTime():0;
+  return t+(cleanNum(v.id)||0)/100000;
+}
+function setDerniereVenteDepuisHistorique(){
+  if(!VE.length){derniereVente=null;return;}
+  var best=VE[0];
+  for(var i=1;i<VE.length;i++) if(venteSortKey(VE[i])>=venteSortKey(best)) best=VE[i];
+  derniereVente=best;
+}
+function dateFr(d){
+  var s=articleDateOnly(d),p=s.split('-');
+  return p.length===3?p[2]+'/'+p[1]+'/'+p[0]:(d||'Date non reconnue');
+}
 function articleDateOnly(d){
   var s=(d||'').toString();
   if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;
@@ -1490,7 +1569,7 @@ function initRap(){
 function renderJour(){
   var d=document.getElementById('fj').value||today();
   var ve=[],vb=[];
-  for(var i=0;i<VE.length;i++) if(VE[i].date===d) ve.push(VE[i]);
+  for(var i=0;i<VE.length;i++) if(articleDateOnly(VE[i].date)===d) ve.push(VE[i]);
   for(var i=0;i<VB.length;i++) if(articleDateOnly(VB[i].date)===d) vb.push(VB[i]);
   var totE=0,totB=0,pax=0,tG=0,tC=0;
   for(var i=0;i<ve.length;i++){totE+=venteTotalEntrees(ve[i]);tG+=ve[i].commGuide;if(ve[i].avecChauf)tC+=ve[i].commChauf;pax+=ventePax(ve[i]);}
@@ -1657,7 +1736,7 @@ function renderMois(){
 function printJour(){
   var d=document.getElementById('fj').value||today();
   var ve=[],vb=[];
-  for(var i=0;i<VE.length;i++) if(VE[i].date===d) ve.push(VE[i]);
+  for(var i=0;i<VE.length;i++) if(articleDateOnly(VE[i].date)===d) ve.push(VE[i]);
   for(var i=0;i<VB.length;i++) if(articleDateOnly(VB[i].date)===d) vb.push(VB[i]);
   var txt=ENT+'\n\nRAPPORT JOURNALIER - '+d+'\n*************************************\n\nVENTES ENTREES\n';
   for(var i=0;i<ve.length;i++){
@@ -1771,7 +1850,8 @@ function migrerDepuisJson(input){
       st.textContent='Envoi vers Google Sheetsâ€¦ (peut prendre 10-30s)';
       apiPost('importAll',data,function(res){
         if(res&&res.ok){
-          VE=data.ventesEntree;VB=data.ventesBoissons;NID=data.nextId||1;
+          VE=(data.ventesEntree||[]).map(normalizeVenteEntree);VB=(data.ventesBoissons||[]).map(normalizeArticleSale);NID=data.nextId||1;
+          setDerniereVenteDepuisHistorique();
           st.style.color='#085041';
           st.textContent='âœ“ Migration rÃ©ussie : '+res.countE+' ventes entrÃ©es et '+res.countB+' ventes articles dans Google Sheets.';
           initRap();renderBoissons();renderParams();
