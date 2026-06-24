@@ -433,6 +433,8 @@ body:not(.locked) #caisse-lock{display:none!important}
       <div class="fg"><label>Code</label><input type="text" id="nt-code" placeholder="COMBO"/></div>
       <div class="fg"><label>Description</label><input type="text" id="nt-desc" placeholder="Circuit combine"/></div>
       <div class="fg"><label>Prix entree (Ar)</label><input type="number" id="nt-prix" placeholder="60000"/></div>
+      <div class="fg"><label>Frais guidage client (Ar)</label><input type="number" id="nt-frais-guide" placeholder="0"/></div>
+      <div class="fg"><label>Type frais guidage</label><select id="nt-frais-guide-type"><option value="personne">Par personne</option><option value="forfait">Par forfait</option></select></div>
       <div class="fg"><label>Comm. guide (Ar)</label><input type="number" id="nt-comm" placeholder="6000"/></div>
       <div class="fg"><label>Type commission</label><select id="nt-comm-type"><option value="personne">Par personne</option><option value="forfait">Par forfait</option></select></div>
       <button class="btn1" onclick="ajouterTarif()" style="align-self:flex-end">+ Ajouter</button>
@@ -485,7 +487,11 @@ var B=ld('boissons',DEF_BOISSONS);
 var G=ld('guides',DEF_GUIDES);
 var P=ld('params',{pctChauf:10});
 function normalizeTarifs(){
-  for(var i=0;i<T.length;i++) if(!T[i].commType) T[i].commType='personne';
+  for(var i=0;i<T.length;i++){
+    if(!T[i].commType) T[i].commType='personne';
+    if(typeof T[i].fraisGuide!=='number') T[i].fraisGuide=parseInt(T[i].fraisGuide)||0;
+    if(!T[i].fraisGuideType) T[i].fraisGuideType='personne';
+  }
 }
 normalizeTarifs();
 
@@ -767,11 +773,16 @@ function isChaufEligibleLine(l){
 }
 function totalEntrees(lignes){var s=0;for(var i=0;i<lignes.length;i++) if(isEntreeLine(lignes[i])) s+=lignes[i].montant;return s;}
 function totalBoissons(lignes){var s=0;for(var i=0;i<lignes.length;i++) if(isBoissonLine(lignes[i])) s+=lignes[i].montant;return s;}
-function totalBaseChauf(lignes){var s=0;for(var i=0;i<lignes.length;i++) if(isChaufEligibleLine(lignes[i])) s+=lignes[i].montant;return s;}
+function totalBaseChauf(lignes){var s=0;for(var i=0;i<lignes.length;i++) if(isChaufEligibleLine(lignes[i])) s+=(lignes[i].prix||0)*lignes[i].nb;return s;}
 function commType(l){return (l&&l.commType)==='forfait'?'forfait':'personne';}
 function commLbl(l){return commType(l)==='forfait'?'forfait':'pers';}
 function calcLineCG(l){return (l.commGuide||0)*(commType(l)==='forfait'?1:l.nb);}
 function calcCG(){var s=0;for(var i=0;i<panier.length;i++) if(isEntreeLine(panier[i])) s+=calcLineCG(panier[i]);return s;}
+function fraisGuideType(l){return (l&&l.fraisGuideType)==='forfait'?'forfait':'personne';}
+function fraisGuideLbl(l){return fraisGuideType(l)==='forfait'?'forfait':'pers';}
+function calcLineFraisGuide(l){return (l.fraisGuide||0)*(fraisGuideType(l)==='forfait'?1:l.nb);}
+function calcLineMontant(t,nb){return (t.prix||0)*nb+(t.fraisGuide||0)*(fraisGuideType(t)==='forfait'?1:nb);}
+function calcLinePrestation(l){return (l.prix||0)*l.nb;}
 function calcTot(){var s=0;for(var i=0;i<panier.length;i++) s+=panier[i].montant;return s;}
 function calcTotEntrees(){return totalEntrees(panier);}
 function calcBaseChauf(){return totalBaseChauf(panier);}
@@ -793,7 +804,9 @@ function renderTarifs(){
     var t=T[i];
     var d=document.createElement('div');
     d.className='tcard'+(tarifSel&&tarifSel.code===t.code?' sel':'');
-    d.innerHTML='<div class="tcode">'+t.code+'</div><div class="tdesc">'+t.desc+'</div><div class="tprix">'+fmt(t.prix)+'</div><div class="tcomm">Guide: '+fmt(t.commGuide)+'/'+commLbl(t)+'</div>';
+    d.innerHTML='<div class="tcode">'+t.code+'</div><div class="tdesc">'+t.desc+'</div><div class="tprix">'+fmt(t.prix)+'</div>'+
+      ((t.fraisGuide||0)>0?'<div class="tcomm" style="color:#185FA5">Frais guidage: '+fmt(t.fraisGuide)+'/'+fraisGuideLbl(t)+'</div>':'')+
+      '<div class="tcomm">Comm: '+fmt(t.commGuide)+'/'+commLbl(t)+'</div>';
     (function(tt){d.onclick=function(){tarifSel=tt;renderTarifs();};})(t);
     g.appendChild(d);
   }
@@ -801,7 +814,7 @@ function renderTarifs(){
 function ajouterLigne(){
   if(!tarifSel){alert('Selectionnez une prestation');return;}
   var nb=parseInt(document.getElementById('nbpax').value)||1;
-  panier.push({type:'entree',code:tarifSel.code,desc:tarifSel.desc,prix:tarifSel.prix,commGuide:tarifSel.commGuide,commType:commType(tarifSel),nb:nb,montant:tarifSel.prix*nb});
+  panier.push({type:'entree',code:tarifSel.code,desc:tarifSel.desc,prix:tarifSel.prix,fraisGuide:tarifSel.fraisGuide||0,fraisGuideType:fraisGuideType(tarifSel),commGuide:tarifSel.commGuide,commType:commType(tarifSel),nb:nb,montant:calcLineMontant(tarifSel,nb)});
   renderPanier();
 }
 function qteBoissonDansPanier(id){var q=0;for(var i=0;i<panier.length;i++) if(isBoissonLine(panier[i])&&panier[i].boissonId===id) q+=panier[i].nb;return q;}
@@ -822,7 +835,10 @@ function renderPanier(){
     var l=panier[i];
     h+='<div class="pline"><span>'+l.desc+' x '+l.nb+'</span><span>'+fmt(l.montant)+'</span><button class="rmv" onclick="removeL('+i+')">&times;</button></div>';
     if(isBoissonLine(l)) h+='<div class="pcomm">&#8618; Article - pas de commission guide</div>';
-    else h+='<div class="pcomm">&#8618; Guide: '+fmt(l.commGuide)+'/'+commLbl(l)+(commType(l)==='forfait'?'':' &times; '+l.nb)+' = '+fmt(calcLineCG(l))+(isChaufEligibleLine(l)?'':' &middot; Chauffeur non applicable')+'</div>';
+    else{
+      if((l.fraisGuide||0)>0) h+='<div class="pcomm" style="color:#185FA5">&#8618; Frais guidage client: '+fmt(l.fraisGuide)+'/'+fraisGuideLbl(l)+(fraisGuideType(l)==='forfait'?'':' &times; '+l.nb)+' = '+fmt(calcLineFraisGuide(l))+'</div>';
+      h+='<div class="pcomm">&#8618; Commission guide: '+fmt(l.commGuide)+'/'+commLbl(l)+(commType(l)==='forfait'?'':' &times; '+l.nb)+' = '+fmt(calcLineCG(l))+(isChaufEligibleLine(l)?'':' &middot; Chauffeur non applicable')+'</div>';
+    }
   }
   c.innerHTML=h;updateTotaux();
 }
@@ -1048,9 +1064,14 @@ function buildHistTicketMini(v){
   for(var i=0;i<v.panier.length;i++){
     var l=v.panier[i];
     ligC+='<div class="tline"><span>'+l.desc+' x '+l.nb+'</span><span>'+fmt(l.montant)+'</span></div>';
+    if(isEntreeLine(l)&&(l.fraisGuide||0)>0){
+      ligC+='<div class="tline-comm" style="color:#1D9E75">&#8618; prix prestation hors frais: <strong>'+fmt(calcLinePrestation(l))+'</strong></div>';
+      ligC+='<div class="tline-comm" style="color:#185FA5">&#8618; frais guidage client: <strong>'+fmt(calcLineFraisGuide(l))+'</strong></div>';
+    }
     if(isEntreeLine(l)){
       hasGuideLines=true;
       ligG+='<div class="tline"><span>'+l.desc+' x '+l.nb+'</span><span>'+fmt(l.montant)+'</span></div>';
+      if((l.fraisGuide||0)>0) ligG+='<div class="tline-comm" style="color:#185FA5">&#8618; frais guidage client inclus: <strong>'+fmt(calcLineFraisGuide(l))+'</strong></div>';
       ligG+='<div class="tline-comm">&#8618; '+fmt(l.commGuide)+'/'+commLbl(l)+(commType(l)==='forfait'?'':' &times; '+l.nb)+' = <strong>'+fmt(calcLineCG(l))+'</strong></div>';
     }
   }
@@ -1117,9 +1138,14 @@ function renderTickets(){
   for(var i=0;i<v.panier.length;i++){
     var l=v.panier[i];
     ligC+='<div class="tline"><span>'+l.desc+' x '+l.nb+'</span><span>'+fmt(l.montant)+'</span></div>';
+    if(isEntreeLine(l)&&(l.fraisGuide||0)>0){
+      ligC+='<div class="tline-comm" style="color:#1D9E75">&#8618; prix prestation hors frais: <strong>'+fmt(calcLinePrestation(l))+'</strong></div>';
+      ligC+='<div class="tline-comm" style="color:#185FA5">&#8618; frais guidage client: <strong>'+fmt(calcLineFraisGuide(l))+'</strong></div>';
+    }
     if(isEntreeLine(l)){
       hasGuideLines=true;
       ligG+='<div class="tline"><span>'+l.desc+' x '+l.nb+'</span><span>'+fmt(l.montant)+'</span></div>';
+      if((l.fraisGuide||0)>0) ligG+='<div class="tline-comm" style="color:#185FA5">&#8618; frais guidage client inclus: <strong>'+fmt(calcLineFraisGuide(l))+'</strong></div>';
       ligG+='<div class="tline-comm">&#8618; '+fmt(l.commGuide)+'/'+commLbl(l)+(commType(l)==='forfait'?'':' &times; '+l.nb)+' = <strong>'+fmt(calcLineCG(l))+'</strong></div>';
     }
   }
@@ -1637,7 +1663,7 @@ function printJour(){
   for(var i=0;i<ve.length;i++){
     var v=ve[i];
     txt+=v.num+' | '+v.client+' | Guide: '+v.guide+(v.avecChauf?' | Chauf: '+v.chauffeur:'')+'\n';
-    for(var j=0;j<v.panier.length;j++){var l=v.panier[j];if(isBoissonLine(l))continue;txt+='  '+l.desc+' x'+l.nb+': '+l.montant.toLocaleString('fr-FR')+' Ar (comm '+commLbl(l)+': '+calcLineCG(l).toLocaleString('fr-FR')+' Ar)\n';}
+    for(var j=0;j<v.panier.length;j++){var l=v.panier[j];if(isBoissonLine(l))continue;txt+='  '+l.desc+' x'+l.nb+': '+l.montant.toLocaleString('fr-FR')+' Ar'+((l.fraisGuide||0)>0?' (frais guidage client: '+calcLineFraisGuide(l).toLocaleString('fr-FR')+' Ar)':'')+' (comm '+commLbl(l)+': '+calcLineCG(l).toLocaleString('fr-FR')+' Ar)\n';}
     txt+='  -> Total entrees: '+venteTotalEntrees(v).toLocaleString('fr-FR')+' Ar | Comm. guide: '+v.commGuide.toLocaleString('fr-FR')+' Ar'+(v.avecChauf?' | Comm. chauf: '+v.commChauf.toLocaleString('fr-FR')+' Ar':'')+'\n';
   }
   var tE=0,tG=0,tC=0;for(var i=0;i<ve.length;i++){tE+=venteTotalEntrees(ve[i]);tG+=ve[i].commGuide;if(ve[i].avecChauf)tC+=ve[i].commChauf;}
@@ -1671,7 +1697,9 @@ function renderParams(){
   for(var i=0;i<T.length;i++){
     var selPers=commType(T[i])==='personne'?' selected':'';
     var selForfait=commType(T[i])==='forfait'?' selected':'';
-    h+='<div class="param-row"><div><strong>'+T[i].code+'</strong> &mdash; '+T[i].desc+' <span style="color:#1D9E75;font-size:11px">('+fmt(T[i].prix)+')</span></div><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><input type="number" value="'+T[i].commGuide+'" style="width:100px" onchange="updCG('+i+',this.value)"/><select onchange="updCGType('+i+',this.value)" style="border:1px solid #ccc;border-radius:4px;padding:6px 8px;font-size:13px;background:#fff"><option value="personne"'+selPers+'>Par personne</option><option value="forfait"'+selForfait+'>Par forfait</option></select></div></div>';
+    var fgPers=fraisGuideType(T[i])==='personne'?' selected':'';
+    var fgForfait=fraisGuideType(T[i])==='forfait'?' selected':'';
+    h+='<div class="param-row"><div><strong>'+T[i].code+'</strong> &mdash; '+T[i].desc+' <span style="color:#1D9E75;font-size:11px">('+fmt(T[i].prix)+')</span></div><div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="font-size:11px;color:#185FA5">Frais guidage</span><input type="number" value="'+(T[i].fraisGuide||0)+'" style="width:100px" onchange="updFG('+i+',this.value)"/><select onchange="updFGType('+i+',this.value)" style="border:1px solid #ccc;border-radius:4px;padding:6px 8px;font-size:13px;background:#fff"><option value="personne"'+fgPers+'>Par personne</option><option value="forfait"'+fgForfait+'>Par forfait</option></select><span style="font-size:11px;color:#BA7517">Commission</span><input type="number" value="'+T[i].commGuide+'" style="width:100px" onchange="updCG('+i+',this.value)"/><select onchange="updCGType('+i+',this.value)" style="border:1px solid #ccc;border-radius:4px;padding:6px 8px;font-size:13px;background:#fff"><option value="personne"'+selPers+'>Par personne</option><option value="forfait"'+selForfait+'>Par forfait</option></select></div></div>';
   }
   document.getElementById('comm-list').innerHTML=h;
   renderGuides();renderTarifsList();
@@ -1679,6 +1707,8 @@ function renderParams(){
 }
 function updCG(i,v){T[i].commGuide=parseInt(v)||0;saveSharedConfig();renderTarifs();}
 function updCGType(i,v){T[i].commType=(v==='forfait')?'forfait':'personne';saveSharedConfig();renderTarifs();renderTarifsList();}
+function updFG(i,v){T[i].fraisGuide=parseInt(v)||0;saveSharedConfig();renderTarifs();renderTarifsList();}
+function updFGType(i,v){T[i].fraisGuideType=(v==='forfait')?'forfait':'personne';saveSharedConfig();renderTarifs();renderTarifsList();}
 function saveParams(){P.pctChauf=parseFloat(document.getElementById('pct-chauf-input').value)||10;saveSharedConfig();document.getElementById('chauf-pct-lbl').textContent=P.pctChauf+'%';}
 function renderGuides(){
   var h='';for(var i=0;i<G.length;i++) h+='<div class="param-row"><span>'+esc(G[i])+'</span><button class="btn2 js-del-guide" data-index="'+i+'" style="padding:4px 10px;font-size:12px">&#128465; Supprimer</button></div>';
@@ -1697,7 +1727,7 @@ function suppGuide(i){
   renderParams();
 }
 function renderTarifsList(){
-  var h='';for(var i=0;i<T.length;i++) h+='<div class="param-row"><span><strong>'+esc(T[i].code)+'</strong> &mdash; '+esc(T[i].desc)+' &middot; '+fmt(T[i].prix)+' &middot; Guide: '+fmt(T[i].commGuide)+'/'+commLbl(T[i])+'</span><button class="btn2 js-del-tarif" data-index="'+i+'" style="padding:4px 10px;font-size:12px">&#128465; Supprimer</button></div>';
+  var h='';for(var i=0;i<T.length;i++) h+='<div class="param-row"><span><strong>'+esc(T[i].code)+'</strong> &mdash; '+esc(T[i].desc)+' &middot; Prix: '+fmt(T[i].prix)+(((T[i].fraisGuide||0)>0)?' &middot; Frais guidage client: '+fmt(T[i].fraisGuide)+'/'+fraisGuideLbl(T[i]):'')+' &middot; Comm: '+fmt(T[i].commGuide)+'/'+commLbl(T[i])+'</span><button class="btn2 js-del-tarif" data-index="'+i+'" style="padding:4px 10px;font-size:12px">&#128465; Supprimer</button></div>';
   var el=document.getElementById('tarifs-list');
   el.innerHTML=h;
   var btns=el.querySelectorAll('.js-del-tarif');
@@ -1707,12 +1737,15 @@ function ajouterTarif(){
   var code=document.getElementById('nt-code').value.trim().toUpperCase();
   var desc=document.getElementById('nt-desc').value.trim();
   var prix=parseInt(document.getElementById('nt-prix').value)||0;
+  var fg=parseInt(document.getElementById('nt-frais-guide').value)||0;
+  var fgt=document.getElementById('nt-frais-guide-type').value==='forfait'?'forfait':'personne';
   var cg=parseInt(document.getElementById('nt-comm').value)||0;
   var ct=document.getElementById('nt-comm-type').value==='forfait'?'forfait':'personne';
   if(!code||!desc)return;
-  T.push({code:code,desc:desc,prix:prix,commGuide:cg,commType:ct});saveSharedConfig();
+  T.push({code:code,desc:desc,prix:prix,fraisGuide:fg,fraisGuideType:fgt,commGuide:cg,commType:ct});saveSharedConfig();
   document.getElementById('nt-code').value='';document.getElementById('nt-desc').value='';
   document.getElementById('nt-prix').value='';document.getElementById('nt-comm').value='';
+  document.getElementById('nt-frais-guide').value='';document.getElementById('nt-frais-guide-type').value='personne';
   document.getElementById('nt-comm-type').value='personne';
   renderTarifsList();renderTarifs();renderParams();
 }
