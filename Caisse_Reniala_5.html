@@ -619,6 +619,7 @@ var PARAM_CODE='1104';
 var paramUnlocked=false;
 var appStarted=false;
 var currentUser=null;
+var CAISSE_SESSION_KEY='renialaCaisseSession';
 var PRINTER_NAME='Xprinter (XP-80)';
 var PRINTER_PAPER_MM=80;
 var PRINTER_PRINT_MM=74;
@@ -650,6 +651,35 @@ function updateSessionUser(){
   if(!currentUser){el.textContent='';return;}
   el.textContent=(currentUser.role==='responsable'?'Responsable: ':'Vendeur: ')+currentUser.nom;
 }
+function saveCaisseSession(user){
+  try{
+    sessionStorage.setItem(CAISSE_SESSION_KEY,JSON.stringify({nom:user.nom,role:user.role}));
+  }catch(e){}
+}
+function clearCaisseSession(){
+  try{
+    sessionStorage.removeItem(CAISSE_SESSION_KEY);
+  }catch(e){}
+}
+function restoreCaisseSession(){
+  try{
+    var raw=sessionStorage.getItem(CAISSE_SESSION_KEY);
+    if(!raw)return false;
+    var saved=JSON.parse(raw);
+    if(!saved||!saved.nom||!saved.role)throw new Error('Session caisse invalide');
+    for(var i=0;i<CAISSE_USERS.length;i++){
+      if(CAISSE_USERS[i].nom===saved.nom&&CAISSE_USERS[i].role===saved.role){
+        currentUser={nom:CAISSE_USERS[i].nom,role:CAISSE_USERS[i].role};
+        updateSessionUser();
+        document.body.classList.remove('locked');
+        startApp();
+        return true;
+      }
+    }
+  }catch(e){}
+  clearCaisseSession();
+  return false;
+}
 function unlockCaisse(){
   var inp=document.getElementById('caisse-code-input');
   var msg=document.getElementById('caisse-lock-msg');
@@ -657,6 +687,7 @@ function unlockCaisse(){
   var user=findCaisseUser(inp.value);
   if(user){
     currentUser=user;
+    saveCaisseSession(user);
     updateSessionUser();
     apiPost('logConnexion',{nom:user.nom,role:user.role},function(){});
     document.body.classList.remove('locked');
@@ -670,6 +701,7 @@ function unlockCaisse(){
 function fermerCaisse(){
   paramUnlocked=false;
   currentUser=null;
+  clearCaisseSession();
   updateSessionUser();
   hideParamLock();
   document.body.classList.add('locked');
@@ -1890,6 +1922,7 @@ function startApp(){
 setTimeout(function(){
   var logo=document.getElementById('caisse-lock-logo');
   if(logo)logo.src=LOGO;
+  if(restoreCaisseSession())return;
   var inp=document.getElementById('caisse-code-input');
   if(inp)inp.focus();
 },50);
