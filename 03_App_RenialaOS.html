@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reniala OS</title>
+<style>
+/* ─── VARIABLES ─────────────────────────────────────────────── */
+:root {
+  --vert:       #2d6a4f;
+  --vert-clair: #52b788;
+  --vert-pale:  #d8f3dc;
+  --vert-sombre:#1b4332;
+  --sable:      #f8f4ef;
+  --texte:      #1c2820;
+  --texte2:     #4a5e52;
+  --bordure:    #c8ddd2;
+  --blanc:      #ffffff;
+  --rouge:      #c1121f;
+  --orange:     #e07b39;
+  --bleu:       #2196f3;
+  --radius:     8px;
+  --ombre:      0 2px 8px rgba(0,0,0,.08);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, -apple-system, sans-serif; background: var(--sable); color: var(--texte); font-size: 14px; line-height: 1.5; }
+
+/* ─── LOGIN ─────────────────────────────────────────────────── */
+#ecran-login { display:flex; align-items:center; justify-content:center; min-height:100vh; background: linear-gradient(135deg, var(--vert-sombre), var(--vert)); }
+.login-card { background:var(--blanc); border-radius:16px; padding:40px; width:340px; box-shadow:0 20px 60px rgba(0,0,0,.25); text-align:center; }
+.login-logo { font-size:48px; margin-bottom:8px; }
+.login-card h1 { font-size:22px; color:var(--vert); margin-bottom:4px; }
+.login-card p { color:var(--texte2); font-size:13px; margin-bottom:28px; }
+.login-card input { width:100%; padding:10px 14px; border:1.5px solid var(--bordure); border-radius:var(--radius); font-size:14px; outline:none; transition:border .2s; }
+.login-card input:focus { border-color:var(--vert-clair); }
+.login-card button { width:100%; margin-top:12px; padding:11px; background:var(--vert); color:var(--blanc); border:none; border-radius:var(--radius); font-size:14px; font-weight:600; cursor:pointer; transition:background .2s; }
+.login-card button:hover { background:var(--vert-sombre); }
+.login-erreur { color:var(--rouge); font-size:13px; margin-top:8px; display:none; }
+
+/* ─── LAYOUT APP ─────────────────────────────────────────────── */
+#app { display:none; min-height:100vh; }
+.sidebar { position:fixed; top:0; left:0; width:220px; height:100vh; background:var(--vert-sombre); color:var(--blanc); display:flex; flex-direction:column; z-index:100; }
+.sidebar-logo { padding:20px 16px 16px; border-bottom:1px solid rgba(255,255,255,.1); }
+.sidebar-logo span { font-size:18px; font-weight:700; color:var(--blanc); display:block; }
+.sidebar-logo small { font-size:11px; color:rgba(255,255,255,.55); }
+.sidebar-user { padding:12px 16px; font-size:12px; color:rgba(255,255,255,.6); border-bottom:1px solid rgba(255,255,255,.08); }
+.sidebar-user strong { color:rgba(255,255,255,.9); display:block; font-size:13px; }
+nav { flex:1; padding:8px 0; overflow-y:auto; }
+nav a { display:flex; align-items:center; gap:10px; padding:10px 16px; color:rgba(255,255,255,.7); text-decoration:none; font-size:13px; border-left:3px solid transparent; transition:all .15s; cursor:pointer; }
+nav a:hover { background:rgba(255,255,255,.07); color:var(--blanc); }
+nav a.actif { background:rgba(255,255,255,.1); color:var(--blanc); border-left-color:var(--vert-clair); font-weight:600; }
+nav a .icone { font-size:16px; width:20px; text-align:center; }
+.sidebar-bas { padding:12px 16px; border-top:1px solid rgba(255,255,255,.08); }
+.btn-deconnexion { width:100%; padding:8px; background:transparent; color:rgba(255,255,255,.6); border:1px solid rgba(255,255,255,.2); border-radius:var(--radius); font-size:12px; cursor:pointer; transition:all .2s; }
+.btn-deconnexion:hover { background:rgba(255,255,255,.1); color:var(--blanc); }
+.contenu-principal { margin-left:220px; padding:24px; min-height:100vh; }
+
+/* ─── EN-TÊTE PAGE ───────────────────────────────────────────── */
+.en-tete-page { margin-bottom:24px; }
+.en-tete-page h2 { font-size:20px; color:var(--vert-sombre); font-weight:700; }
+.en-tete-page p { color:var(--texte2); font-size:13px; margin-top:2px; }
+.en-tete-actions { display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; }
+
+/* ─── BOUTONS ────────────────────────────────────────────────── */
+.btn { padding:8px 16px; border-radius:var(--radius); font-size:13px; font-weight:600; cursor:pointer; border:none; transition:all .2s; display:inline-flex; align-items:center; gap:6px; }
+.btn-primaire { background:var(--vert); color:var(--blanc); }
+.btn-primaire:hover { background:var(--vert-sombre); }
+.btn-secondaire { background:var(--blanc); color:var(--texte); border:1.5px solid var(--bordure); }
+.btn-secondaire:hover { border-color:var(--vert); color:var(--vert); }
+.btn-danger { background:var(--rouge); color:var(--blanc); }
+.btn-sm { padding:5px 10px; font-size:12px; }
+
+/* ─── CARTES STAT ────────────────────────────────────────────── */
+.grille-stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:28px; }
+.carte-stat { background:var(--blanc); border-radius:var(--radius); padding:20px; box-shadow:var(--ombre); border-left:4px solid var(--vert-clair); }
+.carte-stat .valeur { font-size:26px; font-weight:800; color:var(--vert); line-height:1; }
+.carte-stat .label { font-size:12px; color:var(--texte2); margin-top:4px; }
+
+/* ─── CALENDRIER ─────────────────────────────────────────────── */
+.cal-controls { display:flex; align-items:center; gap:12px; margin-bottom:20px; flex-wrap:wrap; }
+.cal-nav { display:flex; align-items:center; gap:8px; }
+.cal-nav button { padding:6px 12px; border:1.5px solid var(--bordure); background:var(--blanc); border-radius:var(--radius); cursor:pointer; font-size:13px; }
+.cal-nav button:hover { background:var(--vert-pale); border-color:var(--vert); }
+.cal-mois { font-size:16px; font-weight:700; color:var(--vert-sombre); min-width:160px; text-align:center; }
+.cal-grille { background:var(--blanc); border-radius:var(--radius); box-shadow:var(--ombre); overflow:hidden; }
+.cal-jours-semaine { display:grid; grid-template-columns:repeat(7,1fr); background:var(--vert-sombre); }
+.cal-jour-label { padding:8px; text-align:center; font-size:11px; font-weight:700; color:rgba(255,255,255,.8); letter-spacing:.5px; text-transform:uppercase; }
+.cal-cases { display:grid; grid-template-columns:repeat(7,1fr); gap:0; }
+.cal-case { min-height:100px; padding:6px; border-right:1px solid var(--bordure); border-bottom:1px solid var(--bordure); background:var(--blanc); vertical-align:top; position:relative; }
+.cal-case:nth-child(7n) { border-right:none; }
+.cal-case.autre-mois { background:#f9f9f9; }
+.cal-case.aujourd-hui { background:var(--vert-pale); }
+.cal-case .num-jour { font-size:12px; font-weight:700; color:var(--texte2); margin-bottom:4px; }
+.cal-case.aujourd-hui .num-jour { color:var(--vert); background:var(--vert); color:var(--blanc); width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+.ev { font-size:11px; padding:2px 6px; border-radius:4px; margin-bottom:2px; cursor:pointer; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-weight:600; }
+.ev-reserve { background:#dbeafe; color:#1e40af; }
+.ev-pris { background:#fef9c3; color:#854d0e; }
+.ev-termine { background:#dcfce7; color:#166534; }
+.ev-annule { background:#fee2e2; color:#991b1b; }
+
+/* ─── LISTE ÉVÉNEMENTS (vue compacte employé) ────────────────── */
+.liste-evs { display:flex; flex-direction:column; gap:12px; }
+.carte-ev { background:var(--blanc); border-radius:var(--radius); box-shadow:var(--ombre); padding:16px 20px; display:flex; align-items:center; gap:16px; border-left:4px solid var(--vert-clair); }
+.carte-ev.statut-pris { border-left-color:var(--orange); }
+.carte-ev.statut-termine { border-left-color:#16a34a; opacity:.7; }
+.carte-ev.statut-annule { border-left-color:var(--rouge); opacity:.6; }
+.carte-ev .ev-dates { font-size:12px; color:var(--texte2); min-width:120px; }
+.carte-ev .ev-dates strong { display:block; font-size:14px; color:var(--texte); }
+.carte-ev .ev-info { flex:1; }
+.carte-ev .ev-client { font-size:15px; font-weight:700; color:var(--vert-sombre); }
+.carte-ev .ev-prestation { font-size:12px; color:var(--texte2); margin-top:2px; }
+.carte-ev .ev-nb { font-size:12px; color:var(--texte2); }
+.carte-ev .ev-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.badge { display:inline-block; padding:3px 8px; border-radius:20px; font-size:11px; font-weight:700; }
+.badge-reserve { background:#dbeafe; color:#1e40af; }
+.badge-pris { background:#fef9c3; color:#854d0e; }
+.badge-termine { background:#dcfce7; color:#166534; }
+.badge-annule { background:#fee2e2; color:#991b1b; }
+
+/* ─── TABLEAU ────────────────────────────────────────────────── */
+.tableau-wrap { background:var(--blanc); border-radius:var(--radius); box-shadow:var(--ombre); overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+thead th { padding:10px 14px; text-align:left; font-weight:700; font-size:11px; color:var(--texte2); text-transform:uppercase; letter-spacing:.5px; border-bottom:2px solid var(--bordure); background:var(--sable); white-space:nowrap; }
+tbody td { padding:10px 14px; border-bottom:1px solid var(--bordure); vertical-align:middle; }
+tbody tr:hover { background:#f0f7f2; }
+tbody tr:last-child td { border-bottom:none; }
+
+/* ─── FORMULAIRES ────────────────────────────────────────────── */
+.formulaire { display:flex; flex-direction:column; gap:14px; }
+.champ { display:flex; flex-direction:column; gap:4px; }
+.champ label { font-size:12px; font-weight:700; color:var(--texte2); }
+.champ input, .champ select, .champ textarea { padding:9px 12px; border:1.5px solid var(--bordure); border-radius:var(--radius); font-size:13px; outline:none; transition:border .2s; font-family:inherit; }
+.champ input:focus, .champ select:focus, .champ textarea:focus { border-color:var(--vert-clair); }
+.champ textarea { resize:vertical; min-height:80px; }
+.grille-2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+
+/* ─── MODALE ─────────────────────────────────────────────────── */
+.modale-fond { position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:500; display:none; align-items:center; justify-content:center; }
+.modale-fond.visible { display:flex; }
+.modale { background:var(--blanc); border-radius:12px; width:540px; max-width:95vw; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,.25); }
+.modale-entete { padding:20px 24px 16px; border-bottom:1px solid var(--bordure); display:flex; align-items:center; justify-content:space-between; }
+.modale-entete h3 { font-size:16px; font-weight:700; color:var(--vert-sombre); }
+.btn-fermer { background:none; border:none; font-size:20px; cursor:pointer; color:var(--texte2); line-height:1; }
+.modale-corps { padding:24px; }
+.modale-pied { padding:16px 24px; border-top:1px solid var(--bordure); display:flex; justify-content:flex-end; gap:10px; }
+
+/* ─── RECHERCHE ──────────────────────────────────────────────── */
+.barre-recherche { display:flex; gap:10px; margin-bottom:16px; }
+.barre-recherche input { flex:1; padding:9px 14px; border:1.5px solid var(--bordure); border-radius:var(--radius); font-size:13px; outline:none; }
+.barre-recherche input:focus { border-color:var(--vert-clair); }
+
+/* ─── CHARGEMENT ─────────────────────────────────────────────── */
+.chargement { text-align:center; padding:40px; color:var(--texte2); }
+.spinner { display:inline-block; width:28px; height:28px; border:3px solid var(--bordure); border-top-color:var(--vert); border-radius:50%; animation:spin .7s linear infinite; margin-bottom:10px; }
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* ─── VIDE ───────────────────────────────────────────────────── */
+.vide { text-align:center; padding:60px 20px; color:var(--texte2); }
+.vide .icone-vide { font-size:48px; opacity:.3; margin-bottom:12px; }
+
+/* ─── TOAST ──────────────────────────────────────────────────── */
+#toast { position:fixed; bottom:24px; right:24px; background:var(--vert-sombre); color:var(--blanc); padding:12px 20px; border-radius:var(--radius); font-size:13px; z-index:9999; display:none; box-shadow:0 4px 20px rgba(0,0,0,.3); max-width:320px; }
+#toast.erreur { background:var(--rouge); }
+
+/* ─── FILTRES CALENDRIER ─────────────────────────────────────── */
+.filtres { display:flex; gap:8px; flex-wrap:wrap; }
+.filtre-btn { padding:5px 12px; border:1.5px solid var(--bordure); background:var(--blanc); border-radius:20px; font-size:12px; cursor:pointer; transition:all .2s; }
+.filtre-btn.actif, .filtre-btn:hover { background:var(--vert); color:var(--blanc); border-color:var(--vert); }
+
+/* ─── RESPONSIVE ─────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  .sidebar { width:60px; }
+  .sidebar-logo span, .sidebar-logo small, .sidebar-user, nav a span, .btn-deconnexion { display:none; }
+  nav a { justify-content:center; padding:12px; }
+  .contenu-principal { margin-left:60px; padding:16px; }
+  .cal-case { min-height:60px; }
+  .grille-2 { grid-template-columns:1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     ÉCRAN DE LOGIN
+════════════════════════════════════════════════════════════ -->
+<div id="ecran-login">
+  <div class="login-card">
+    <div class="login-logo">🌿</div>
+    <h1>Reniala OS</h1>
+    <p>Système de gestion — Réserve Reniala</p>
+    <input type="email" id="login-email" placeholder="votre@email.com" autocomplete="email">
+    <button onclick="seConnecter()">Accéder</button>
+    <p class="login-erreur" id="login-erreur">Email non reconnu ou accès désactivé.</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     APPLICATION
+════════════════════════════════════════════════════════════ -->
+<div id="app">
+  <div class="sidebar">
+    <div class="sidebar-logo">
+      <span>🌿 Reniala OS</span>
+      <small>Réserve Naturelle</small>
+    </div>
+    <div class="sidebar-user">
+      <strong id="user-nom">—</strong>
+      <span id="user-role-label">—</span>
+    </div>
+    <nav id="nav-menu">
+      <!-- Rempli dynamiquement selon le rôle -->
+    </nav>
+    <div class="sidebar-bas">
+      <button class="btn-deconnexion" onclick="seDeconnecter()">⬡ Déconnexion</button>
+    </div>
+  </div>
+
+  <main class="contenu-principal">
+    <div id="page-dashboard"><!-- injecté --></div>
+    <div id="page-calendrier"><!-- injecté --></div>
+    <div id="page-clients"><!-- injecté --></div>
+    <div id="page-pipeline"><!-- injecté --></div>
+    <div id="page-documents"><!-- injecté --></div>
+  </main>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MODALE GÉNÉRIQUE
+════════════════════════════════════════════════════════════ -->
+<div class="modale-fond" id="modale-fond">
+  <div class="modale">
+    <div class="modale-entete">
+      <h3 id="modale-titre">—</h3>
+      <button class="btn-fermer" onclick="fermerModale()">✕</button>
+    </div>
+    <div class="modale-corps" id="modale-corps"></div>
+    <div class="modale-pied" id="modale-pied"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+//  CONFIGURATION
+// ─────────────────────────────────────────────────────────────
+var API_URL = 'https://reniala-os.maurice-adiba-e15.workers.dev';
+// Format : https://script.google.com/macros/s/TON_DEPLOYMENT_ID/exec
+// Si pas de Cloudflare Worker, mettre l'URL Apps Script directement
+// et désactiver le mode CORS dans la config du worker
+
+// ─────────────────────────────────────────────────────────────
+//  ÉTAT GLOBAL
+// ─────────────────────────────────────────────────────────────
+var ETAT = {
+  utilisateur: null,
+  pageActive: null,
+  calMois: new Date().getMonth(),
+  calAnnee: new Date().getFullYear(),
+  calFiltre: 'Tous',
+  evenements: [],
+  clients: [],
+  produits: [],
+};
+
+// ─────────────────────────────────────────────────────────────
+//  MENUS PAR RÔLE
+// ─────────────────────────────────────────────────────────────
+var MENUS = {
+  ADMIN: [
+    { id:'dashboard',  icone:'📊', label:'Tableau de bord' },
+    { id:'calendrier', icone:'📅', label:'Calendrier' },
+    { id:'pipeline',   icone:'📧', label:'Pipeline e-mails' },
+    { id:'clients',    icone:'👥', label:'Clients' },
+    { id:'documents',  icone:'📄', label:'Devis & Factures' },
+  ],
+  EMPLOYEE: [
+    { id:'calendrier', icone:'📅', label:'Réservations' },
+  ]
+};
+
+// ─────────────────────────────────────────────────────────────
+//  API
+// ─────────────────────────────────────────────────────────────
+async function api(action, params) {
+  try {
+    var resp = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: action, params: params || {} })
+    });
+    var json = await resp.json();
+    if (!json.ok) throw new Error(json.erreur || 'Erreur API');
+    return json.data;
+  } catch (e) {
+    toast('Erreur : ' + e.message, true);
+    throw e;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  AUTH
+// ─────────────────────────────────────────────────────────────
+async function seConnecter() {
+  var email = document.getElementById('login-email').value.trim();
+  if (!email) return;
+  try {
+    var user = await api('verifierUtilisateur', { email: email });
+    if (!user || !user.autorise) {
+      document.getElementById('login-erreur').style.display = 'block';
+      return;
+    }
+    ETAT.utilisateur = user;
+    sessionStorage.setItem('reniala_user', JSON.stringify(user));
+    lancerApp();
+  } catch(e) {
+    document.getElementById('login-erreur').style.display = 'block';
+  }
+}
+
+function seDeconnecter() {
+  sessionStorage.removeItem('reniala_user');
+  ETAT.utilisateur = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('ecran-login').style.display = 'flex';
+}
+
+function lancerApp() {
+  var user = ETAT.utilisateur;
+  document.getElementById('ecran-login').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('user-nom').textContent = user.nom;
+  document.getElementById('user-role-label').textContent =
+    user.role === 'ADMIN' ? 'Administrateur' : 'Employé terrain';
+
+  // Construire le menu
+  var menu = MENUS[user.role] || MENUS.EMPLOYEE;
+  var nav = document.getElementById('nav-menu');
+  nav.innerHTML = menu.map(function(item) {
+    return '<a onclick="allerA(\'' + item.id + '\')" id="nav-' + item.id + '">' +
+      '<span class="icone">' + item.icone + '</span><span>' + item.label + '</span></a>';
+  }).join('');
+
+  // Page par défaut
+  allerA(menu[0].id);
+}
+
+function allerA(pageId) {
+  // Masquer toutes les pages
+  ['dashboard','calendrier','clients','pipeline','documents'].forEach(function(p) {
+    document.getElementById('page-' + p).style.display = 'none';
+  });
+  // Désactiver liens nav
+  document.querySelectorAll('nav a').forEach(function(a) { a.classList.remove('actif'); });
+  // Activer
+  document.getElementById('page-' + pageId).style.display = 'block';
+  var navEl = document.getElementById('nav-' + pageId);
+  if (navEl) navEl.classList.add('actif');
+  ETAT.pageActive = pageId;
+  // Charger la page
+  var fns = {
+    dashboard: chargerDashboard,
+    calendrier: chargerCalendrier,
+    clients: chargerClients,
+    pipeline: chargerPipeline,
+    documents: chargerDocuments
+  };
+  if (fns[pageId]) fns[pageId]();
+}
+
+// ─────────────────────────────────────────────────────────────
+//  DASHBOARD
+// ─────────────────────────────────────────────────────────────
+async function chargerDashboard() {
+  var page = document.getElementById('page-dashboard');
+  page.innerHTML = '<div class="chargement"><div class="spinner"></div><p>Chargement...</p></div>';
+  try {
+    var kpis = await api('getKPIs');
+    page.innerHTML = `
+      <div class="en-tete-page">
+        <h2>Tableau de bord</h2>
+        <p>${kpis.mois}</p>
+      </div>
+      <div class="grille-stats">
+        <div class="carte-stat">
+          <div class="valeur">${formaterAriary(kpis.caMois)}</div>
+          <div class="label">CA du mois</div>
+        </div>
+        <div class="carte-stat">
+          <div class="valeur">${kpis.nbCommandesMois}</div>
+          <div class="label">Réservations ce mois</div>
+        </div>
+        <div class="carte-stat" style="border-left-color:${kpis.nbFacturesImpayees > 0 ? 'var(--orange)' : 'var(--vert-clair)'}">
+          <div class="valeur">${kpis.nbFacturesImpayees}</div>
+          <div class="label">Factures impayées</div>
+        </div>
+        <div class="carte-stat" style="border-left-color:var(--rouge)">
+          <div class="valeur">${formaterAriary(kpis.montantImpaye)}</div>
+          <div class="label">Montant impayé</div>
+        </div>
+      </div>
+      <p style="color:var(--texte2);font-size:13px;margin-top:8px;">
+        💡 Cliquez sur <strong>Calendrier</strong> pour voir les arrivées, ou <strong>Pipeline</strong> pour les e-mails en attente.
+      </p>
+    `;
+  } catch(e) {
+    page.innerHTML = '<div class="vide"><div class="icone-vide">⚠️</div><p>Impossible de charger les données.</p></div>';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  CALENDRIER
+// ─────────────────────────────────────────────────────────────
+async function chargerCalendrier() {
+  var page = document.getElementById('page-calendrier');
+  var estAdmin = ETAT.utilisateur.role === 'ADMIN';
+
+  page.innerHTML = `
+    <div class="en-tete-page">
+      <h2>${estAdmin ? '📅 Calendrier des réservations' : '📅 Mes réservations du jour'}</h2>
+      <p>${estAdmin ? 'Vue mensuelle — cliquez sur une réservation pour la gérer.' : 'Mettez à jour le statut de chaque groupe.'}</p>
+    </div>
+    <div id="cal-contenu"><div class="chargement"><div class="spinner"></div><p>Chargement...</p></div></div>
+  `;
+
+  try {
+    ETAT.evenements = await api('getEvenements', {});
+    if (estAdmin) {
+      renderCalendrierAdmin();
+    } else {
+      renderCalendrierEmploye();
+    }
+  } catch(e) {
+    document.getElementById('cal-contenu').innerHTML =
+      '<div class="vide"><div class="icone-vide">⚠️</div><p>Erreur de chargement.</p></div>';
+  }
+}
+
+function renderCalendrierAdmin() {
+  var moisNoms = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  var joursNoms = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
+  var auj = new Date();
+
+  var html = `
+    <div class="cal-controls">
+      <div class="cal-nav">
+        <button onclick="changerMois(-1)">◀</button>
+        <span class="cal-mois" id="cal-titre">${moisNoms[ETAT.calMois]} ${ETAT.calAnnee}</span>
+        <button onclick="changerMois(1)">▶</button>
+        <button onclick="allerAujourdhui()" style="margin-left:4px;font-size:12px;">Aujourd'hui</button>
+      </div>
+      <div class="filtres">
+        ${['Tous','Réservé','Pris en charge','Terminé','Annulé'].map(function(f) {
+          return '<button class="filtre-btn' + (ETAT.calFiltre === f ? ' actif' : '') +
+            '" onclick="filtrerCal(\'' + f + '\')">' + f + '</button>';
+        }).join('')}
+      </div>
+    </div>
+    <div class="cal-grille">
+      <div class="cal-jours-semaine">
+        ${joursNoms.map(function(j) { return '<div class="cal-jour-label">' + j + '</div>'; }).join('')}
+      </div>
+      <div class="cal-cases" id="cal-cases"></div>
+    </div>
+  `;
+  document.getElementById('cal-contenu').innerHTML = html;
+  renderCasesCalendrier(auj);
+}
+
+function renderCasesCalendrier(auj) {
+  var premier = new Date(ETAT.calAnnee, ETAT.calMois, 1);
+  var jourSemPremier = (premier.getDay() + 6) % 7; // Lundi = 0
+  var nbJours = new Date(ETAT.calAnnee, ETAT.calMois + 1, 0).getDate();
+  var cases = '';
+
+  // Cases avant le 1er
+  for (var i = 0; i < jourSemPremier; i++) {
+    var d = new Date(ETAT.calAnnee, ETAT.calMois, -jourSemPremier + i + 1);
+    cases += '<div class="cal-case autre-mois"><div class="num-jour">' + d.getDate() + '</div></div>';
+  }
+
+  for (var j = 1; j <= nbJours; j++) {
+    var date = new Date(ETAT.calAnnee, ETAT.calMois, j);
+    var estAujourdhui = date.toDateString() === auj.toDateString();
+    var evsDuJour = getEvenementsDuJour(date);
+
+    var filtre = ETAT.calFiltre;
+    if (filtre !== 'Tous') {
+      evsDuJour = evsDuJour.filter(function(e) { return e.statut_operation === filtre; });
+    }
+
+    cases += '<div class="cal-case' + (estAujourdhui ? ' aujourd-hui' : '') + '">';
+    cases += '<div class="num-jour">' + j + '</div>';
+    evsDuJour.forEach(function(ev) {
+      var classe = {
+        'Réservé': 'ev-reserve', 'Pris en charge': 'ev-pris',
+        'Terminé': 'ev-termine', 'Annulé': 'ev-annule'
+      }[ev.statut_operation] || 'ev-reserve';
+      cases += '<div class="ev ' + classe + '" onclick="ouvrirEvenement(' + ev.id + ')" title="' + ev.client_nom + '">' +
+        ev.client_nom + '</div>';
+    });
+    cases += '</div>';
+  }
+
+  // Compléter la grille (multiple de 7)
+  var totalCases = jourSemPremier + nbJours;
+  var reste = 7 - (totalCases % 7);
+  if (reste < 7) {
+    for (var k = 1; k <= reste; k++) {
+      cases += '<div class="cal-case autre-mois"><div class="num-jour">' + k + '</div></div>';
+    }
+  }
+
+  document.getElementById('cal-cases').innerHTML = cases;
+}
+
+function renderCalendrierEmploye() {
+  var auj = new Date(); auj.setHours(0,0,0,0);
+  var dans7j = new Date(auj); dans7j.setDate(dans7j.getDate() + 7);
+
+  var evsSemaine = ETAT.evenements.filter(function(ev) {
+    var d = parseDateEv(ev.date_debut);
+    return d >= auj && d <= dans7j && ev.statut_operation !== 'Annulé';
+  }).sort(function(a, b) { return parseDateEv(a.date_debut) - parseDateEv(b.date_debut); });
+
+  if (evsSemaine.length === 0) {
+    document.getElementById('cal-contenu').innerHTML =
+      '<div class="vide"><div class="icone-vide">✅</div><p>Aucune réservation dans les 7 prochains jours.</p></div>';
+    return;
+  }
+
+  var html = '<div class="liste-evs">';
+  evsSemaine.forEach(function(ev) {
+    var classes = { 'Réservé': '', 'Pris en charge': 'statut-pris', 'Terminé': 'statut-termine' };
+    var badges  = { 'Réservé': 'badge-reserve', 'Pris en charge': 'badge-pris', 'Terminé': 'badge-termine' };
+    var statut  = ev.statut_operation || 'Réservé';
+
+    var actionsHtml = '';
+    if (statut === 'Réservé') {
+      actionsHtml = '<button class="btn btn-sm btn-secondaire" onclick="majStatutEv(' + ev.id + ',\'Pris en charge\')">✔ Arrivé</button>';
+    } else if (statut === 'Pris en charge') {
+      actionsHtml = '<button class="btn btn-sm btn-primaire" onclick="majStatutEv(' + ev.id + ',\'Terminé\')">⬛ Terminé</button>';
+    }
+
+    html += `
+      <div class="carte-ev ${classes[statut] || ''}">
+        <div class="ev-dates">
+          <strong>${formatDateCourt(ev.date_debut)}</strong>
+          ${ev.date_fin && ev.date_fin !== ev.date_debut ? '→ ' + formatDateCourt(ev.date_fin) : ''}
+          ${ev.heure_rdv ? '<br>' + ev.heure_rdv : ''}
+        </div>
+        <div class="ev-info">
+          <div class="ev-client">${ev.client_nom}</div>
+          <div class="ev-prestation">${ev.prestations || '—'}</div>
+          <div class="ev-nb">${ev.nb_personnes ? ev.nb_personnes + ' personne(s)' : ''} ${ev.guide_assign ? '· Guide : ' + ev.guide_assign : ''}</div>
+          ${ev.notes_terrain ? '<div style="font-size:11px;color:var(--texte2);margin-top:4px;font-style:italic;">📝 ' + ev.notes_terrain + '</div>' : ''}
+        </div>
+        <div class="ev-actions">
+          <span class="badge ${badges[statut] || 'badge-reserve'}">${statut}</span>
+          ${actionsHtml}
+        </div>
+      </div>
+    `;
+  });
+  html += '</div>';
+  document.getElementById('cal-contenu').innerHTML = html;
+}
+
+function getEvenementsDuJour(date) {
+  return ETAT.evenements.filter(function(ev) {
+    var debut = parseDateEv(ev.date_debut);
+    var fin   = parseDateEv(ev.date_fin || ev.date_debut);
+    var d = new Date(date); d.setHours(0,0,0,0);
+    debut = debut || d; debut.setHours(0,0,0,0);
+    fin   = fin   || d; fin.setHours(23,59,59,0);
+    return d >= debut && d <= fin;
+  });
+}
+
+function parseDateEv(val) {
+  if (!val) return null;
+  if (val instanceof Date) return val;
+  // Format dd/MM/yyyy
+  var m = String(val).match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (m) return new Date(m[3], m[2]-1, m[1]);
+  return new Date(val);
+}
+
+function changerMois(delta) {
+  ETAT.calMois += delta;
+  if (ETAT.calMois > 11) { ETAT.calMois = 0; ETAT.calAnnee++; }
+  if (ETAT.calMois < 0)  { ETAT.calMois = 11; ETAT.calAnnee--; }
+  var moisNoms = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+  document.getElementById('cal-titre').textContent = moisNoms[ETAT.calMois] + ' ' + ETAT.calAnnee;
+  renderCasesCalendrier(new Date());
+}
+
+function allerAujourdhui() {
+  var auj = new Date();
+  ETAT.calMois = auj.getMonth();
+  ETAT.calAnnee = auj.getFullYear();
+  changerMois(0);
+}
+
+function filtrerCal(filtre) {
+  ETAT.calFiltre = filtre;
+  document.querySelectorAll('.filtre-btn').forEach(function(b) {
+    b.classList.toggle('actif', b.textContent === filtre);
+  });
+  renderCasesCalendrier(new Date());
+}
+
+async function majStatutEv(id, statut) {
+  try {
+    await api('mettreAJourStatut', {
+      id: id, statut: statut,
+      userEmail: ETAT.utilisateur.email
+    });
+    toast('Statut mis à jour : ' + statut);
+    ETAT.evenements = await api('getEvenements', {});
+    if (ETAT.utilisateur.role === 'ADMIN') renderCasesCalendrier(new Date());
+    else renderCalendrierEmploye();
+  } catch(e) {}
+}
+
+function ouvrirEvenement(id) {
+  var ev = ETAT.evenements.find(function(e) { return String(e.id) === String(id); });
+  if (!ev) return;
+
+  var statut = ev.statut_operation || 'Réservé';
+  var options = ['Réservé','Pris en charge','Terminé','Annulé'];
+  var optsHtml = options.map(function(s) {
+    return '<option' + (s === statut ? ' selected' : '') + '>' + s + '</option>';
+  }).join('');
+
+  ouvrirModale('Réservation : ' + ev.client_nom, `
+    <div class="formulaire">
+      <div class="champ"><label>Client</label><input value="${ev.client_nom}" readonly></div>
+      <div class="grille-2">
+        <div class="champ"><label>Date début</label><input value="${ev.date_debut}" readonly></div>
+        <div class="champ"><label>Date fin</label><input value="${ev.date_fin || '—'}" readonly></div>
+      </div>
+      <div class="champ"><label>Prestations</label><textarea readonly>${ev.prestations || ''}</textarea></div>
+      <div class="grille-2">
+        <div class="champ"><label>Nb personnes</label><input value="${ev.nb_personnes || ''}" readonly></div>
+        <div class="champ"><label>Guide assigné</label><input id="ev-guide" value="${ev.guide_assign || ''}"></div>
+      </div>
+      <div class="champ"><label>Statut opération</label><select id="ev-statut">${optsHtml}</select></div>
+      <div class="champ"><label>Notes terrain</label><textarea id="ev-notes" placeholder="Ajouter une note...">${ev.notes_terrain || ''}</textarea></div>
+    </div>
+  `, [
+    { label: 'Annuler', fn: fermerModale, classe: 'btn-secondaire' },
+    { label: '💾 Enregistrer', classe: 'btn-primaire', fn: async function() {
+      var nvStatut = document.getElementById('ev-statut').value;
+      var notes    = document.getElementById('ev-notes').value;
+      await api('mettreAJourStatut', {
+        id: id, statut: nvStatut,
+        userEmail: ETAT.utilisateur.email,
+        notes: notes
+      });
+      fermerModale();
+      toast('Réservation mise à jour.');
+      ETAT.evenements = await api('getEvenements', {});
+      renderCasesCalendrier(new Date());
+    }}
+  ]);
+}
+
+// ─────────────────────────────────────────────────────────────
+//  CLIENTS
+// ─────────────────────────────────────────────────────────────
+async function chargerClients(recherche) {
+  var page = document.getElementById('page-clients');
+  page.innerHTML = `
+    <div class="en-tete-actions">
+      <div class="en-tete-page"><h2>👥 Clients</h2><p>Carnet d'adresses et historique.</p></div>
+      <button class="btn btn-primaire" onclick="ouvrirFormulaireClient()">+ Nouveau client</button>
+    </div>
+    <div class="barre-recherche">
+      <input type="text" id="recherche-client" placeholder="Rechercher par nom, e-mail, téléphone…" oninput="rechercherClients(this.value)">
+    </div>
+    <div class="tableau-wrap">
+      <table id="table-clients">
+        <thead><tr><th>Nom</th><th>Email</th><th>Téléphone</th><th>Type</th><th>Pays</th><th>Actions</th></tr></thead>
+        <tbody id="tbody-clients"><tr><td colspan="6" class="chargement">Chargement…</td></tr></tbody>
+      </table>
+    </div>
+  `;
+  try {
+    ETAT.clients = await api('getClients', { recherche: recherche || '' });
+    renderTableauClients(ETAT.clients);
+  } catch(e) {}
+}
+
+function renderTableauClients(clients) {
+  var tbody = document.getElementById('tbody-clients');
+  if (!clients || clients.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="vide"><div class="icone-vide">👥</div><p>Aucun client trouvé.</p></div></td></tr>';
+    return;
+  }
+  tbody.innerHTML = clients.map(function(c) {
+    return '<tr>' +
+      '<td><strong>' + (c.nom || '') + '</strong></td>' +
+      '<td>' + (c.email || '') + '</td>' +
+      '<td>' + (c.telephone || '') + '</td>' +
+      '<td>' + (c.type_client || '') + '</td>' +
+      '<td>' + (c.pays || '') + '</td>' +
+      '<td><button class="btn btn-sm btn-secondaire" onclick="ouvrirFormulaireClient(' + c.id + ')">✏️ Modifier</button></td>' +
+      '</tr>';
+  }).join('');
+}
+
+async function rechercherClients(q) {
+  var tous = await api('getClients', { recherche: q });
+  renderTableauClients(tous);
+}
+
+function ouvrirFormulaireClient(id) {
+  var client = id ? ETAT.clients.find(function(c) { return String(c.id) === String(id); }) : {};
+  client = client || {};
+  var titre = id ? 'Modifier le client' : 'Nouveau client';
+
+  ouvrirModale(titre, `
+    <div class="formulaire">
+      <div class="champ"><label>Nom / Raison sociale *</label><input id="cl-nom" value="${client.nom || ''}"></div>
+      <div class="grille-2">
+        <div class="champ"><label>Email</label><input id="cl-email" type="email" value="${client.email || ''}"></div>
+        <div class="champ"><label>Téléphone</label><input id="cl-tel" value="${client.telephone || ''}"></div>
+      </div>
+      <div class="champ"><label>Adresse</label><input id="cl-adresse" value="${client.adresse || ''}"></div>
+      <div class="grille-2">
+        <div class="champ"><label>Ville</label><input id="cl-ville" value="${client.ville || ''}"></div>
+        <div class="champ"><label>Pays</label><input id="cl-pays" value="${client.pays || 'Madagascar'}"></div>
+      </div>
+      <div class="champ"><label>Type</label>
+        <select id="cl-type">
+          ${['Particulier','Agence','ONG','Entreprise','Autre'].map(function(t) {
+            return '<option' + (client.type_client === t ? ' selected' : '') + '>' + t + '</option>';
+          }).join('')}
+        </select>
+      </div>
+      <div class="grille-2">
+        <div class="champ"><label>RC</label><input id="cl-rc" value="${client.rc || ''}"></div>
+        <div class="champ"><label>NIF</label><input id="cl-nif" value="${client.nif || ''}"></div>
+      </div>
+      <div class="champ"><label>STAT</label><input id="cl-stat" value="${client.stat || ''}"></div>
+      <div class="champ"><label>Notes</label><textarea id="cl-notes">${client.notes || ''}</textarea></div>
+    </div>
+  `, [
+    { label: 'Annuler', fn: fermerModale, classe: 'btn-secondaire' },
+    { label: '💾 Enregistrer', classe: 'btn-primaire', fn: async function() {
+      var data = {
+        nom: document.getElementById('cl-nom').value,
+        email: document.getElementById('cl-email').value,
+        telephone: document.getElementById('cl-tel').value,
+        adresse: document.getElementById('cl-adresse').value,
+        ville: document.getElementById('cl-ville').value,
+        pays: document.getElementById('cl-pays').value,
+        type_client: document.getElementById('cl-type').value,
+        rc: document.getElementById('cl-rc').value,
+        nif: document.getElementById('cl-nif').value,
+        stat: document.getElementById('cl-stat').value,
+        notes: document.getElementById('cl-notes').value
+      };
+      if (!data.nom) { toast('Le nom est obligatoire.', true); return; }
+      if (id) await api('mettreAJourClient', { id: id, data: data, userEmail: ETAT.utilisateur.email });
+      else    await api('creerClient', { data: data, userEmail: ETAT.utilisateur.email });
+      fermerModale();
+      toast(id ? 'Client mis à jour.' : 'Client créé.');
+      chargerClients();
+    }}
+  ]);
+}
+
+// ─────────────────────────────────────────────────────────────
+//  PIPELINE
+// ─────────────────────────────────────────────────────────────
+async function chargerPipeline() {
+  var page = document.getElementById('page-pipeline');
+  page.innerHTML = `
+    <div class="en-tete-actions">
+      <div class="en-tete-page"><h2>📧 Pipeline e-mails</h2><p>E-mails reçus sur info@reniala-madagascar.com</p></div>
+    </div>
+    <div class="filtres" style="margin-bottom:16px;">
+      ${['Tous','En attente','Traité','Converti','Réglé'].map(function(f) {
+        return '<button class="filtre-btn' + (f === 'En attente' ? ' actif' : '') +
+          '" onclick="filtrerPipeline(\'' + f + '\',this)">' + f + '</button>';
+      }).join('')}
+    </div>
+    <div id="pipeline-liste"><div class="chargement"><div class="spinner"></div><p>Chargement…</p></div></div>
+  `;
+  var emails = await api('getPipeline', { statut: 'En attente' });
+  renderPipeline(emails);
+}
+
+function renderPipeline(emails) {
+  var div = document.getElementById('pipeline-liste');
+  if (!emails || emails.length === 0) {
+    div.innerHTML = '<div class="vide"><div class="icone-vide">📭</div><p>Aucun e-mail dans cette catégorie.</p></div>';
+    return;
+  }
+  div.innerHTML = '<div class="liste-evs">' + emails.map(function(em) {
+    var badges = { 'En attente':'badge-reserve','Traité':'badge-pris','Converti':'badge-termine','Réglé':'badge-termine','Archivé':'badge-annule' };
+    return '<div class="carte-ev">' +
+      '<div class="ev-dates"><strong>' + formatDateCourt(em.date_reception) + '</strong></div>' +
+      '<div class="ev-info">' +
+        '<div class="ev-client">' + (em.expediteur || '') + '</div>' +
+        '<div class="ev-prestation">' + (em.sujet || '') + '</div>' +
+        '<div style="font-size:12px;color:var(--texte2);margin-top:4px;">' + tronquer(em.corps_email, 120) + '</div>' +
+      '</div>' +
+      '<div class="ev-actions">' +
+        '<span class="badge ' + (badges[em.statut] || 'badge-reserve') + '">' + em.statut + '</span>' +
+        '<button class="btn btn-sm btn-secondaire" onclick="ouvrirEmail(' + em.id + ')">Ouvrir</button>' +
+      '</div></div>';
+  }).join('') + '</div>';
+}
+
+async function filtrerPipeline(statut, btn) {
+  document.querySelectorAll('.filtre-btn').forEach(function(b) { b.classList.remove('actif'); });
+  if (btn) btn.classList.add('actif');
+  var emails = await api('getPipeline', { statut: statut === 'Tous' ? null : statut });
+  renderPipeline(emails);
+}
+
+function ouvrirEmail(id) {
+  toast('Module complet disponible dans la prochaine version. Marquez comme Traité directement.');
+}
+
+// ─────────────────────────────────────────────────────────────
+//  DOCUMENTS (version simplifiée)
+// ─────────────────────────────────────────────────────────────
+async function chargerDocuments() {
+  var page = document.getElementById('page-documents');
+  page.innerHTML = `
+    <div class="en-tete-actions">
+      <div class="en-tete-page"><h2>📄 Devis & Factures</h2><p>Cycle de vie des documents financiers.</p></div>
+      <button class="btn btn-primaire" onclick="ouvrirFormulaireDevis()">+ Nouveau devis</button>
+    </div>
+    <div id="docs-liste"><div class="chargement"><div class="spinner"></div><p>Chargement…</p></div></div>
+  `;
+  var docs = await api('getDocuments', {});
+  renderDocuments(docs);
+}
+
+function renderDocuments(docs) {
+  var div = document.getElementById('docs-liste');
+  if (!docs || docs.length === 0) {
+    div.innerHTML = '<div class="vide"><div class="icone-vide">📄</div><p>Aucun document.</p></div>';
+    return;
+  }
+  div.innerHTML = '<div class="tableau-wrap"><table>' +
+    '<thead><tr><th>N°</th><th>Type</th><th>Client</th><th>Montant</th><th>Statut</th><th>Date</th><th>Actions</th></tr></thead>' +
+    '<tbody>' + docs.map(function(d) {
+      var typeColors = { DEVIS:'#fef9c3', PROFORMA:'#dbeafe', FACTURE:'#dcfce7' };
+      return '<tr>' +
+        '<td><strong>' + d.numero + '</strong></td>' +
+        '<td><span style="background:' + (typeColors[d.type]||'#eee') + ';padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700;">' + d.type + '</span></td>' +
+        '<td>' + d.client_nom + '</td>' +
+        '<td>' + formaterAriary(d.montant_total) + '</td>' +
+        '<td>' + d.statut + '</td>' +
+        '<td>' + formatDateCourt(d.date_creation) + '</td>' +
+        '<td style="display:flex;gap:6px;">' +
+        (d.type === 'DEVIS' && d.statut === 'Envoyé' ?
+          '<button class="btn btn-sm btn-primaire" onclick="confirmerDevis(' + d.id + ')">→ Proforma</button>' : '') +
+        (d.type === 'PROFORMA' && d.statut !== 'Annulé' ?
+          '<button class="btn btn-sm btn-primaire" onclick="genererFacture(' + d.id + ')">→ Facture</button>' : '') +
+        (d.type === 'FACTURE' && d.statut !== 'Payé' ?
+          '<button class="btn btn-sm btn-secondaire" onclick="marquerPaye(' + d.id + ')">✓ Payé</button>' : '') +
+        '</td></tr>';
+    }).join('') + '</tbody></table></div>';
+}
+
+async function confirmerDevis(id) {
+  if (!confirm('Convertir ce devis en proforma ? Cela crée la réservation dans le calendrier.')) return;
+  await api('convertirDevisEnProforma', { documentId: id, userEmail: ETAT.utilisateur.email });
+  toast('Proforma créée. Réservation ajoutée au calendrier.');
+  chargerDocuments();
+}
+
+async function genererFacture(id) {
+  await api('genererFactureDepuisProforma', { proformaId: id, userEmail: ETAT.utilisateur.email });
+  toast('Facture générée.');
+  chargerDocuments();
+}
+
+async function marquerPaye(id) {
+  await api('marquerFacturePayee', { documentId: id, userEmail: ETAT.utilisateur.email });
+  toast('Facture marquée comme payée.');
+  chargerDocuments();
+}
+
+async function ouvrirFormulaireDevis() {
+  if (ETAT.produits.length === 0) ETAT.produits = await api('getProduits', {});
+  if (ETAT.clients.length === 0) ETAT.clients = await api('getClients', {});
+
+  ouvrirModale('Nouveau devis', `
+    <div class="formulaire">
+      <div class="champ"><label>Client *</label>
+        <select id="dv-client">
+          <option value="">— Sélectionner —</option>
+          ${ETAT.clients.map(function(c) { return '<option value="' + c.id + ':' + c.nom + '">' + c.nom + '</option>'; }).join('')}
+        </select>
+      </div>
+      <div class="champ"><label>Date d'échéance</label><input type="date" id="dv-echeance"></div>
+      <div class="champ"><label>Lignes de prestation</label></div>
+      <div id="lignes-devis"></div>
+      <button class="btn btn-secondaire btn-sm" onclick="ajouterLigne()" style="margin-top:4px;">+ Ajouter une ligne</button>
+      <div class="champ" style="margin-top:8px;"><label>Notes</label><textarea id="dv-notes"></textarea></div>
+    </div>
+  `, [
+    { label: 'Annuler', fn: fermerModale, classe: 'btn-secondaire' },
+    { label: '💾 Créer le devis', classe: 'btn-primaire', fn: async function() {
+      var clientVal = document.getElementById('dv-client').value.split(':');
+      if (!clientVal[0]) { toast('Sélectionnez un client.', true); return; }
+      var lignesEls = document.querySelectorAll('.ligne-devis');
+      var lignes = Array.from(lignesEls).map(function(el) {
+        return {
+          description: el.querySelector('.ld-desc').value,
+          quantite: parseInt(el.querySelector('.ld-qte').value) || 1,
+          prix_unitaire: parseInt(el.querySelector('.ld-prix').value) || 0
+        };
+      }).filter(function(l) { return l.description; });
+      if (lignes.length === 0) { toast('Ajoutez au moins une prestation.', true); return; }
+      var res = await api('creerDocument', {
+        data: { type: 'DEVIS', client_id: clientVal[0], client_nom: clientVal[1],
+                date_echeance: document.getElementById('dv-echeance').value,
+                notes: document.getElementById('dv-notes').value },
+        lignes: lignes,
+        userEmail: ETAT.utilisateur.email
+      });
+      fermerModale();
+      toast('Devis ' + res.numero + ' créé.');
+      chargerDocuments();
+    }}
+  ]);
+  ajouterLigne();
+}
+
+function ajouterLigne() {
+  var prodOptions = ETAT.produits.map(function(p) {
+    return '<option value="' + p.nom + ':' + p.prix_ariary + '">' + p.nom + ' — ' + formaterAriary(p.prix_ariary) + '</option>';
+  }).join('');
+  var div = document.createElement('div');
+  div.className = 'ligne-devis';
+  div.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;';
+  div.innerHTML = `
+    <div class="champ"><label>Prestation</label>
+      <select class="ld-prod" onchange="remplirLigne(this)">
+        <option value="">Personnalisé</option>${prodOptions}
+      </select>
+      <input class="ld-desc" placeholder="Description" style="margin-top:4px;">
+    </div>
+    <div class="champ"><label>Qté</label><input class="ld-qte" type="number" value="1" min="1"></div>
+    <div class="champ"><label>Prix (Ar)</label><input class="ld-prix" type="number" value="0"></div>
+    <button class="btn btn-sm btn-danger" onclick="this.parentElement.remove()" style="margin-bottom:1px;">✕</button>
+  `;
+  document.getElementById('lignes-devis').appendChild(div);
+}
+
+function remplirLigne(sel) {
+  var val = sel.value.split(':');
+  if (val[0]) {
+    var ligne = sel.closest('.ligne-devis');
+    ligne.querySelector('.ld-desc').value = val[0];
+    ligne.querySelector('.ld-prix').value = val[1] || 0;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  MODALE
+// ─────────────────────────────────────────────────────────────
+function ouvrirModale(titre, corpsHtml, boutons) {
+  document.getElementById('modale-titre').textContent = titre;
+  document.getElementById('modale-corps').innerHTML = corpsHtml;
+  document.getElementById('modale-pied').innerHTML = (boutons || []).map(function(b, i) {
+    return '<button class="btn ' + (b.classe || 'btn-secondaire') + '" id="modal-btn-' + i + '">' + b.label + '</button>';
+  }).join('');
+  (boutons || []).forEach(function(b, i) {
+    document.getElementById('modal-btn-' + i).addEventListener('click', b.fn);
+  });
+  document.getElementById('modale-fond').classList.add('visible');
+}
+
+function fermerModale() {
+  document.getElementById('modale-fond').classList.remove('visible');
+}
+document.getElementById('modale-fond').addEventListener('click', function(e) {
+  if (e.target === this) fermerModale();
+});
+
+// ─────────────────────────────────────────────────────────────
+//  UTILITAIRES
+// ─────────────────────────────────────────────────────────────
+function toast(msg, erreur) {
+  var el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = erreur ? 'erreur' : '';
+  el.style.display = 'block';
+  setTimeout(function() { el.style.display = 'none'; }, 3500);
+}
+
+function formaterAriary(val) {
+  if (!val && val !== 0) return '—';
+  return Number(val).toLocaleString('fr-FR') + ' Ar';
+}
+
+function formatDateCourt(val) {
+  if (!val) return '—';
+  if (typeof val === 'string' && val.match(/^\d{2}\/\d{2}\/\d{4}/)) return val.slice(0,10);
+  var d = new Date(val);
+  if (isNaN(d)) return String(val).slice(0,10);
+  return d.toLocaleDateString('fr-FR');
+}
+
+function tronquer(str, max) {
+  if (!str) return '';
+  return str.length > max ? str.slice(0, max) + '…' : str;
+}
+
+// ─────────────────────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────────────────────
+(function init() {
+  var saved = sessionStorage.getItem('reniala_user');
+  if (saved) {
+    try {
+      ETAT.utilisateur = JSON.parse(saved);
+      lancerApp();
+    } catch(e) { sessionStorage.removeItem('reniala_user'); }
+  }
+  // Entrée clavier login
+  document.getElementById('login-email').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') seConnecter();
+  });
+})();
+</script>
+</body>
+</html>
