@@ -329,7 +329,7 @@ body:not(.locked) #caisse-lock{display:none!important}
 <!-- RAPPORTS -->
 <div id="sec-rapports" class="sec">
   <div class="rtabs">
-    <button class="rtab active" id="rtab-jour" onclick="goRap('jour',this)">&#128197; Journalier</button>
+    <button class="rtab active" id="rtab-jour" onclick="goRap('jour',this)">&#128197; Ventes</button>
     <button class="rtab" id="rtab-guides" onclick="goRap('guides',this)">&#128694; Guides</button>
     <button class="rtab" id="rtab-chauffeurs" onclick="goRap('chauffeurs',this)">&#128663; Chauffeurs</button>
     <button class="rtab" id="rtab-articles" onclick="goRap('articles',this)">&#127862; Articles</button>
@@ -337,9 +337,20 @@ body:not(.locked) #caisse-lock{display:none!important}
   </div>
   <div id="rap-jour" class="rcontent active">
     <div class="rfilter">
-      <label>Date :</label>
-      <input type="date" id="fj" onchange="renderJour()"/>
+      <label>Periode</label>
+      <select id="rj-period" onchange="onRapPeriodChange()">
+        <option value="all">Toutes les ventes</option>
+        <option value="today" selected>Aujourd'hui</option>
+        <option value="week">Cette semaine</option>
+        <option value="month">Ce mois</option>
+        <option value="year">Cette annee</option>
+        <option value="custom">Personnalisee</option>
+      </select>
+      <input type="date" id="rj-start" onchange="renderJour()" style="display:none"/>
+      <input type="date" id="rj-end" onchange="renderJour()" style="display:none"/>
+      <button class="btn2" onclick="renderJour()">Actualiser</button>
       <button class="btn1" onclick="printJour()">&#128424; Imprimer rapport</button>
+      <button class="btn2" onclick="exportRapVentesCsv()">Exporter CSV</button>
     </div>
     <div class="sbar" id="jour-sum"></div>
     <div class="stitle">Ventes entrees</div><div id="jour-tab"></div>
@@ -1586,7 +1597,8 @@ function fillMonthSelect(id,type){
   sel.value=months.indexOf(current)>=0?current:months[0];
 }
 function initRap(){
-  document.getElementById('fj').value=today();
+  var p=document.getElementById('rj-period');
+  if(p)onRapPeriodChange(false);
   fillMonthSelect('fg','entrees');
   fillMonthSelect('fc','entrees');
   fillMonthSelect('fb','articles');
@@ -1598,11 +1610,43 @@ function initRap(){
   var sel=document.getElementById('fa');sel.innerHTML='';
   for(var i=0;i<ks.length;i++) sel.innerHTML+='<option value="'+ks[i]+'">'+ks[i]+'</option>';
 }
+function rapPeriodRange(){
+  var sel=document.getElementById('rj-period'),p=sel?sel.value:'today',now=new Date(),start,end;
+  if(p==='all'){start=new Date(1900,0,1);end=new Date(2100,11,31);}
+  else if(p==='week'){start=articleStartOfWeek(now);end=new Date(start);end.setDate(start.getDate()+6);}
+  else if(p==='month'){start=new Date(now.getFullYear(),now.getMonth(),1);end=new Date(now.getFullYear(),now.getMonth()+1,0);}
+  else if(p==='year'){start=new Date(now.getFullYear(),0,1);end=new Date(now.getFullYear(),11,31);}
+  else if(p==='custom'){
+    var s=document.getElementById('rj-start').value,e=document.getElementById('rj-end').value;
+    start=s?new Date(s+'T00:00:00'):new Date(now.getFullYear(),now.getMonth(),1);
+    end=e?new Date(e+'T00:00:00'):new Date(now.getFullYear(),now.getMonth()+1,0);
+  }else{start=new Date(now.getFullYear(),now.getMonth(),now.getDate());end=new Date(start);}
+  return {start:start,end:end,label:p==='all'?'Toutes les ventes':articleIso(start)+' au '+articleIso(end),all:p==='all'};
+}
+function onRapPeriodChange(renderNow){
+  var custom=document.getElementById('rj-period').value==='custom';
+  document.getElementById('rj-start').style.display=custom?'inline-block':'none';
+  document.getElementById('rj-end').style.display=custom?'inline-block':'none';
+  if(custom&&!document.getElementById('rj-start').value){
+    var r=rapPeriodRange();document.getElementById('rj-start').value=articleIso(r.start);document.getElementById('rj-end').value=articleIso(r.end);
+  }
+  if(renderNow!==false)renderJour();
+}
+function venteInRange(v,r){
+  if(r&&r.all)return true;
+  var d=articleDateObj(v.date);
+  return d&&d>=r.start&&d<=r.end;
+}
+function articleSaleInRange(v,r){
+  if(r&&r.all)return true;
+  var d=articleDateObj(v.date);
+  return d&&d>=r.start&&d<=r.end;
+}
 function renderJour(){
-  var d=document.getElementById('fj').value||today();
+  var r=rapPeriodRange();
   var ve=[],vb=[];
-  for(var i=0;i<VE.length;i++) if(articleDateOnly(VE[i].date)===d) ve.push(VE[i]);
-  for(var i=0;i<VB.length;i++) if(articleDateOnly(VB[i].date)===d) vb.push(VB[i]);
+  for(var i=0;i<VE.length;i++) if(venteInRange(VE[i],r)) ve.push(VE[i]);
+  for(var i=0;i<VB.length;i++) if(articleSaleInRange(VB[i],r)) vb.push(VB[i]);
   var totE=0,totB=0,pax=0,tG=0,tC=0;
   for(var i=0;i<ve.length;i++){totE+=venteTotalEntrees(ve[i]);tG+=ve[i].commGuide;if(ve[i].avecChauf)tC+=ve[i].commChauf;pax+=ventePax(ve[i]);}
   for(var i=0;i<vb.length;i++) totB+=vb[i].montant;
@@ -1610,25 +1654,25 @@ function renderJour(){
     '<div class="met"><div class="mval">'+totE.toLocaleString('fr-FR')+'</div><div class="mlbl">CA entrees (Ar)</div></div>'+
     '<div class="met"><div class="mval">'+totB.toLocaleString('fr-FR')+'</div><div class="mlbl">CA articles (Ar)</div></div>'+
     '<div class="met"><div class="mval">'+pax+'</div><div class="mlbl">visiteurs</div></div>';
-  if(!ve.length){document.getElementById('jour-tab').innerHTML='<div class="empty">Aucune vente ce jour</div>';}
+  if(!ve.length){document.getElementById('jour-tab').innerHTML='<div class="empty">Aucune vente entree sur cette periode</div>';}
   else{
-    var h='<table><thead><tr><th>N</th><th>Client</th><th>Guide</th><th>Chauffeur</th><th>Prestations</th><th class="num">Total</th><th class="num" style="color:#BA7517">Comm. guide</th><th class="num" style="color:#185FA5">Comm. chauf.</th></tr></thead><tbody>';
+    var h='<table><thead><tr><th>Date</th><th>N</th><th>Client</th><th>Guide</th><th>Chauffeur</th><th>Prestations</th><th class="num">Total</th><th class="num" style="color:#BA7517">Comm. guide</th><th class="num" style="color:#185FA5">Comm. chauf.</th></tr></thead><tbody>';
     for(var i=0;i<ve.length;i++){
       var v=ve[i];var prests='';
       prests=venteCodesEntrees(v);
-      h+='<tr><td>'+v.num+'</td><td>'+v.client+'</td><td>'+v.guide+'</td><td>'+(v.avecChauf?v.chauffeur:'--')+'</td><td>'+prests+'</td>'+
+      h+='<tr><td>'+articleDisplayDate(v.date)+'</td><td>'+v.num+'</td><td>'+v.client+'</td><td>'+v.guide+'</td><td>'+(v.avecChauf?v.chauffeur:'--')+'</td><td>'+prests+'</td>'+
       '<td class="num">'+venteTotalEntrees(v).toLocaleString('fr-FR')+'</td>'+
       '<td class="num" style="color:#BA7517">'+v.commGuide.toLocaleString('fr-FR')+'</td>'+
       '<td class="num" style="color:#185FA5">'+(v.avecChauf?v.commChauf.toLocaleString('fr-FR'):'--')+'</td></tr>';
     }
-    h+='<tr class="r-total"><td colspan="5"><strong>Total</strong></td><td class="num">'+totE.toLocaleString('fr-FR')+'</td><td class="num" style="color:#BA7517">'+tG.toLocaleString('fr-FR')+'</td><td class="num" style="color:#185FA5">'+tC.toLocaleString('fr-FR')+'</td></tr></tbody></table>';
+    h+='<tr class="r-total"><td colspan="6"><strong>Total</strong></td><td class="num">'+totE.toLocaleString('fr-FR')+'</td><td class="num" style="color:#BA7517">'+tG.toLocaleString('fr-FR')+'</td><td class="num" style="color:#185FA5">'+tC.toLocaleString('fr-FR')+'</td></tr></tbody></table>';
     document.getElementById('jour-tab').innerHTML=h;
   }
-  if(!vb.length){document.getElementById('jour-bois').innerHTML='<div class="empty">Aucune vente article ce mois</div>';}
+  if(!vb.length){document.getElementById('jour-bois').innerHTML='<div class="empty">Aucune vente article sur cette periode</div>';}
   else{
-    var h='<table><thead><tr><th>Article</th><th class="num">Qte</th><th class="num">Montant</th></tr></thead><tbody>';
-    var tot2=0;for(var i=0;i<vb.length;i++){h+='<tr><td>'+vb[i].nom+'</td><td class="num">'+vb[i].qty+'</td><td class="num">'+vb[i].montant.toLocaleString('fr-FR')+'</td></tr>';tot2+=vb[i].montant;}
-    h+='<tr class="r-total"><td><strong>Total</strong></td><td></td><td class="num">'+tot2.toLocaleString('fr-FR')+'</td></tr></tbody></table>';
+    var h='<table><thead><tr><th>Date</th><th>Article</th><th class="num">Qte</th><th class="num">Montant</th></tr></thead><tbody>';
+    var tot2=0;for(var i=0;i<vb.length;i++){h+='<tr><td>'+articleDisplayDate(vb[i].date)+'</td><td>'+vb[i].nom+'</td><td class="num">'+vb[i].qty+'</td><td class="num">'+vb[i].montant.toLocaleString('fr-FR')+'</td></tr>';tot2+=vb[i].montant;}
+    h+='<tr class="r-total"><td colspan="2"><strong>Total</strong></td><td></td><td class="num">'+tot2.toLocaleString('fr-FR')+'</td></tr></tbody></table>';
     document.getElementById('jour-bois').innerHTML=h;
   }
 }
@@ -1766,23 +1810,40 @@ function renderMois(){
   document.getElementById('mois-cards').innerHTML=h;
 }
 function printJour(){
-  var d=document.getElementById('fj').value||today();
+  var r=rapPeriodRange();
   var ve=[],vb=[];
-  for(var i=0;i<VE.length;i++) if(articleDateOnly(VE[i].date)===d) ve.push(VE[i]);
-  for(var i=0;i<VB.length;i++) if(articleDateOnly(VB[i].date)===d) vb.push(VB[i]);
-  var txt=ENT+'\n\nRAPPORT JOURNALIER - '+d+'\n*************************************\n\nVENTES ENTREES\n';
+  for(var i=0;i<VE.length;i++) if(venteInRange(VE[i],r)) ve.push(VE[i]);
+  for(var i=0;i<VB.length;i++) if(articleSaleInRange(VB[i],r)) vb.push(VB[i]);
+  var txt=ENT+'\n\nRAPPORT DES VENTES - '+r.label+'\n*************************************\n\nVENTES ENTREES\n';
   for(var i=0;i<ve.length;i++){
     var v=ve[i];
-    txt+=v.num+' | '+v.client+' | Guide: '+v.guide+(v.avecChauf?' | Chauf: '+v.chauffeur:'')+'\n';
+    txt+=articleDisplayDate(v.date)+' | '+v.num+' | '+v.client+' | Guide: '+v.guide+(v.avecChauf?' | Chauf: '+v.chauffeur:'')+'\n';
     for(var j=0;j<v.panier.length;j++){var l=v.panier[j];if(isBoissonLine(l))continue;txt+='  '+l.desc+' x'+l.nb+': '+l.montant.toLocaleString('fr-FR')+' Ar'+((l.fraisGuide||0)>0?' (frais guidage client: '+calcLineFraisGuide(l).toLocaleString('fr-FR')+' Ar)':'')+' (comm '+commLbl(l)+': '+calcLineCG(l).toLocaleString('fr-FR')+' Ar)\n';}
     txt+='  -> Total entrees: '+venteTotalEntrees(v).toLocaleString('fr-FR')+' Ar | Comm. guide: '+v.commGuide.toLocaleString('fr-FR')+' Ar'+(v.avecChauf?' | Comm. chauf: '+v.commChauf.toLocaleString('fr-FR')+' Ar':'')+'\n';
   }
   var tE=0,tG=0,tC=0;for(var i=0;i<ve.length;i++){tE+=venteTotalEntrees(ve[i]);tG+=ve[i].commGuide;if(ve[i].avecChauf)tC+=ve[i].commChauf;}
   txt+='*************************************\nTotal entrees: '+tE.toLocaleString('fr-FR')+' Ar\nComm. guides: '+tG.toLocaleString('fr-FR')+' Ar | Comm. chauffeurs: '+tC.toLocaleString('fr-FR')+' Ar\n\nVENTES ARTICLES\n';
-  var tB=0;for(var i=0;i<vb.length;i++){txt+=vb[i].nom+' x '+vb[i].qty+': '+vb[i].montant.toLocaleString('fr-FR')+' Ar\n';tB+=vb[i].montant;}
+  var tB=0;for(var i=0;i<vb.length;i++){txt+=articleDisplayDate(vb[i].date)+' | '+vb[i].nom+' x '+vb[i].qty+': '+vb[i].montant.toLocaleString('fr-FR')+' Ar\n';tB+=vb[i].montant;}
   txt+='Total articles: '+tB.toLocaleString('fr-FR')+' Ar';
   var w=window.open('','_blank','width=500,height=750');
   if(w){w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"/></head><body><pre style="font-family:monospace;font-size:13px;padding:24px;line-height:1.8">'+txt+'</pre><'+'script>window.print();setTimeout(function(){window.close();},1500);<'+'/script></body></html>');w.document.close();}
+}
+function csvCell(v){
+  var s=String(v==null?'':v);
+  return /[;"\r\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s;
+}
+function exportRapVentesCsv(){
+  var r=rapPeriodRange(),csv='Type;Date;Numero;Client/Article;Guide;Chauffeur;Quantite/Visiteurs;Montant;Comm guide;Comm chauffeur;Vendeur\n';
+  for(var i=0;i<VE.length;i++){
+    var v=VE[i];if(!venteInRange(v,r))continue;
+    csv+=['Entree',articleDisplayDate(v.date),v.num||'',v.client||'',v.guide||'',v.avecChauf?(v.chauffeur||''):'',ventePax(v),venteTotalEntrees(v),v.commGuide||0,v.avecChauf?(v.commChauf||0):0,v.vendeur||''].map(csvCell).join(';')+'\n';
+  }
+  for(var j=0;j<VB.length;j++){
+    var b=VB[j];if(!articleSaleInRange(b,r))continue;
+    csv+=['Article',articleDisplayDate(b.date),b.num||'',b.nom||'','','',b.qty||0,b.montant||0,'','',b.vendeur||''].map(csvCell).join(';')+'\n';
+  }
+  var blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+  a.href=url;a.download='rapport_ventes_'+r.label.replace(/[^0-9a-zA-Z]+/g,'_')+'.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},1000);
 }
 function printMois(){
   var annee=document.getElementById('fa').value;
