@@ -206,6 +206,10 @@ body:not(.locked) #caisse-lock{display:none!important}
     <div class="fg"><label>N&#176; Facture</label><input type="text" id="numfact" placeholder="2026-001"/></div>
     <div class="fg"><label>Date</label><input type="date" id="datefact"/></div>
   </div>
+  <div class="frow">
+    <div class="fg"><label>Nombre reel de visiteurs</label><input type="number" id="visiteurs-reels" value="1" min="0"/></div>
+    <div class="fg"></div>
+  </div>
 
   <div class="stitle">&#127915; Selectionner une prestation</div>
   <div class="tgrid" id="tgrid"></div>
@@ -836,7 +840,16 @@ function calcBaseChauf(){return totalBaseChauf(panier);}
 function venteTotalEntrees(v){return typeof v.totalEntrees==='number'?v.totalEntrees:totalEntrees(v.panier||[]);}
 function venteTotalNet(v){return venteTotalEntrees(v)-(v.commGuide||0)-(v.avecChauf?(v.commChauf||0):0);}
 function venteBaseChauf(v){return typeof v.totalChaufBase==='number'?v.totalChaufBase:totalBaseChauf(v.panier||[]);}
-function ventePax(v){var p=0,l=v.panier||[];for(var i=0;i<l.length;i++) if(isEntreeLine(l[i])) p+=l[i].nb;return p;}
+function ventePax(v){
+  var raw=v?v.visiteurs:null;
+  if(raw!==undefined&&raw!==null&&raw!==''){
+    var n=cleanNum(raw);
+    if(!isNaN(n))return n;
+  }
+  var p=0,l=(v&&v.panier)||[];
+  for(var i=0;i<l.length;i++) if(isEntreeLine(l[i])) p+=l[i].nb;
+  return p;
+}
 function venteCodesEntrees(v){var r='',l=v.panier||[];for(var i=0;i<l.length;i++) if(isEntreeLine(l[i])) r+=(r?', ':'')+l[i].code+'x'+l[i].nb;return r;}
 function updateTotaux(){
   var tot=calcTot(),cg=calcCG(),pct=P.pctChauf||10,baseChauf=calcBaseChauf();
@@ -917,6 +930,7 @@ function panierContientEntree(){for(var i=0;i<panier.length;i++) if(isEntreeLine
 function preparerClientSuivant(){
   panier=[];tarifSel=null;chaufActif=false;
   document.getElementById('client').value='';
+  document.getElementById('visiteurs-reels').value='1';
   document.getElementById('guide').value='';
   document.getElementById('chauffeur').value='';
   document.getElementById('chauffeur-libre').value='';
@@ -939,6 +953,8 @@ function validerVente(){
   var guide=document.getElementById('guide').value||'--';
   var num=document.getElementById('numfact').value||('REN-'+NID);
   var date=document.getElementById('datefact').value||today();
+  var visiteurs=parseInt(document.getElementById('visiteurs-reels').value,10);
+  if(isNaN(visiteurs)||visiteurs<0){alert('Indiquez un nombre reel de visiteurs valide.');return;}
   var total=calcTot(),totalEntree=calcTotEntrees(),totalBois=totalBoissons(panier),baseChauf=calcBaseChauf(),cg=calcCG(),pct=P.pctChauf||10;
   var nomChauf=chaufActif?getNomChauffeur():'';
   var cc=chaufActif?Math.round(baseChauf*pct/100):0;
@@ -960,7 +976,7 @@ function validerVente(){
     panier:panier.slice(),total:total,totalEntrees:totalEntree,
     totalBoissons:totalBois,totalChaufBase:baseChauf,
     commGuide:cg,commChauf:cc,avecChauf:chaufActif,pctChauf:pct,
-    vendeur:currentSellerName()
+    visiteurs:visiteurs,vendeur:currentSellerName()
   };
 
   // DÃ©sactive le bouton pendant l'envoi
@@ -1021,6 +1037,7 @@ function nouvelleVente(){
 function resetCaisse(){
   panier=[];tarifSel=null;chaufActif=false;
   document.getElementById('client').value='';
+  document.getElementById('visiteurs-reels').value='1';
   document.getElementById('guide').value='';
   document.getElementById('chauffeur').value='';
   document.getElementById('chauffeur-libre').value='';
@@ -1425,6 +1442,7 @@ function normalizeVenteEntree(v,idx){
       commChauf:cleanNum(v[14]),
       vendeur:v[15]||''
     };
+    if(v.length>16&&v[16]!==''&&v[16]!==null&&v[16]!==undefined)o.visiteurs=cleanNum(v[16]);
   }else{
     o=Object.assign({},v);
     o.id=cleanNum(pickField(v,['id','ID','Id']))||cleanNum(o.id);
@@ -1443,6 +1461,8 @@ function normalizeVenteEntree(v,idx){
     o.totalChaufBase=cleanNum(o.totalChaufBase||pickField(v,['totalChaufBase','TotalChaufBase']));
     o.commGuide=cleanNum(o.commGuide||pickField(v,['commGuide','commissionGuide','CommGuide']));
     o.commChauf=cleanNum(o.commChauf||pickField(v,['commChauf','commissionChauf','CommChauf']));
+    var vis=pickField(v,['visiteurs','Visiteurs','nbVisiteurs','nombreVisiteurs','pax'])||o.visiteurs;
+    if(vis!==''&&vis!==null&&vis!==undefined)o.visiteurs=cleanNum(vis);
     o.vendeur=pickField(v,['vendeur','seller','caissier','Vendeur'])||o.vendeur||'';
   }
   o._idx=idx||0;
@@ -1657,17 +1677,18 @@ function renderJour(){
     '<div class="met"><div class="mval">'+pax+'</div><div class="mlbl">visiteurs</div></div>';
   if(!ve.length){document.getElementById('jour-tab').innerHTML='<div class="empty">Aucune vente entree sur cette periode</div>';}
   else{
-    var h='<table><thead><tr><th>Date</th><th>N</th><th>Client</th><th>Guide</th><th>Chauffeur</th><th>Prestations</th><th class="num">Total</th><th class="num" style="color:#BA7517">Comm. guide</th><th class="num" style="color:#185FA5">Comm. chauf.</th><th class="num" style="color:#085041">Total net</th></tr></thead><tbody>';
+    var h='<table><thead><tr><th>Date</th><th>N</th><th>Client</th><th>Guide</th><th>Chauffeur</th><th>Prestations</th><th class="num">Visiteurs</th><th class="num">Total</th><th class="num" style="color:#BA7517">Comm. guide</th><th class="num" style="color:#185FA5">Comm. chauf.</th><th class="num" style="color:#085041">Total net</th></tr></thead><tbody>';
     for(var i=0;i<ve.length;i++){
       var v=ve[i];var prests='';
       prests=venteCodesEntrees(v);
       h+='<tr><td>'+articleDisplayDate(v.date)+'</td><td>'+v.num+'</td><td>'+v.client+'</td><td>'+v.guide+'</td><td>'+(v.avecChauf?v.chauffeur:'--')+'</td><td>'+prests+'</td>'+
+      '<td class="num">'+ventePax(v)+'</td>'+
       '<td class="num">'+venteTotalEntrees(v).toLocaleString('fr-FR')+'</td>'+
       '<td class="num" style="color:#BA7517">'+v.commGuide.toLocaleString('fr-FR')+'</td>'+
       '<td class="num" style="color:#185FA5">'+(v.avecChauf?v.commChauf.toLocaleString('fr-FR'):'--')+'</td>'+
       '<td class="num" style="color:#085041;font-weight:bold">'+venteTotalNet(v).toLocaleString('fr-FR')+'</td></tr>';
     }
-    h+='<tr class="r-total"><td colspan="6"><strong>Total</strong></td><td class="num">'+totE.toLocaleString('fr-FR')+'</td><td class="num" style="color:#BA7517">'+tG.toLocaleString('fr-FR')+'</td><td class="num" style="color:#185FA5">'+tC.toLocaleString('fr-FR')+'</td><td class="num" style="color:#085041">'+tN.toLocaleString('fr-FR')+'</td></tr></tbody></table>';
+    h+='<tr class="r-total"><td colspan="6"><strong>Total</strong></td><td class="num">'+pax+'</td><td class="num">'+totE.toLocaleString('fr-FR')+'</td><td class="num" style="color:#BA7517">'+tG.toLocaleString('fr-FR')+'</td><td class="num" style="color:#185FA5">'+tC.toLocaleString('fr-FR')+'</td><td class="num" style="color:#085041">'+tN.toLocaleString('fr-FR')+'</td></tr></tbody></table>';
     document.getElementById('jour-tab').innerHTML=h;
   }
   if(!vb.length){document.getElementById('jour-bois').innerHTML='<div class="empty">Aucune vente article sur cette periode</div>';}
@@ -1819,7 +1840,7 @@ function printJour(){
   var txt=ENT+'\n\nRAPPORT DES VENTES - '+r.label+'\n*************************************\n\nVENTES ENTREES\n';
   for(var i=0;i<ve.length;i++){
     var v=ve[i];
-    txt+=articleDisplayDate(v.date)+' | '+v.num+' | '+v.client+' | Guide: '+v.guide+(v.avecChauf?' | Chauf: '+v.chauffeur:'')+'\n';
+    txt+=articleDisplayDate(v.date)+' | '+v.num+' | '+v.client+' | Visiteurs: '+ventePax(v)+' | Guide: '+v.guide+(v.avecChauf?' | Chauf: '+v.chauffeur:'')+'\n';
     for(var j=0;j<v.panier.length;j++){var l=v.panier[j];if(isBoissonLine(l))continue;txt+='  '+l.desc+' x'+l.nb+': '+l.montant.toLocaleString('fr-FR')+' Ar'+((l.fraisGuide||0)>0?' (frais guidage client: '+calcLineFraisGuide(l).toLocaleString('fr-FR')+' Ar)':'')+' (comm '+commLbl(l)+': '+calcLineCG(l).toLocaleString('fr-FR')+' Ar)\n';}
     txt+='  -> Total entrees: '+venteTotalEntrees(v).toLocaleString('fr-FR')+' Ar | Comm. guide: '+v.commGuide.toLocaleString('fr-FR')+' Ar'+(v.avecChauf?' | Comm. chauf: '+v.commChauf.toLocaleString('fr-FR')+' Ar':'')+' | Total net: '+venteTotalNet(v).toLocaleString('fr-FR')+' Ar\n';
   }
