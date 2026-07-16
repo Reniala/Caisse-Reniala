@@ -1837,19 +1837,91 @@ function printJour(){
   var ve=[],vb=[];
   for(var i=0;i<VE.length;i++) if(venteInRange(VE[i],r)) ve.push(VE[i]);
   for(var i=0;i<VB.length;i++) if(articleSaleInRange(VB[i],r)) vb.push(VB[i]);
-  var txt=ENT+'\n\nRAPPORT DES VENTES - '+r.label+'\n*************************************\n\nVENTES ENTREES\n';
-  for(var i=0;i<ve.length;i++){
-    var v=ve[i];
-    txt+=articleDisplayDate(v.date)+' | '+v.num+' | '+v.client+' | Visiteurs: '+ventePax(v)+' | Guide: '+v.guide+(v.avecChauf?' | Chauf: '+v.chauffeur:'')+'\n';
-    for(var j=0;j<v.panier.length;j++){var l=v.panier[j];if(isBoissonLine(l))continue;txt+='  '+l.desc+' x'+l.nb+': '+l.montant.toLocaleString('fr-FR')+' Ar'+((l.fraisGuide||0)>0?' (frais guidage client: '+calcLineFraisGuide(l).toLocaleString('fr-FR')+' Ar)':'')+' (comm '+commLbl(l)+': '+calcLineCG(l).toLocaleString('fr-FR')+' Ar)\n';}
-    txt+='  -> Total entrees: '+venteTotalEntrees(v).toLocaleString('fr-FR')+' Ar | Comm. guide: '+v.commGuide.toLocaleString('fr-FR')+' Ar'+(v.avecChauf?' | Comm. chauf: '+v.commChauf.toLocaleString('fr-FR')+' Ar':'')+' | Total net: '+venteTotalNet(v).toLocaleString('fr-FR')+' Ar\n';
+
+  function money(n){return (Number(n)||0).toLocaleString('fr-FR')+' Ar';}
+  function safe(v){return esc(v==null?'':v);}
+  function prestationsHtml(v){
+    var out=[],l=v.panier||[];
+    for(var i=0;i<l.length;i++){
+      if(isBoissonLine(l[i]))continue;
+      out.push(safe(l[i].desc)+' x '+(l[i].nb||0));
+    }
+    return out.length?out.join('<br>'):'--';
   }
-  var tE=0,tG=0,tC=0,tN=0;for(var i=0;i<ve.length;i++){tE+=venteTotalEntrees(ve[i]);tG+=ve[i].commGuide;if(ve[i].avecChauf)tC+=ve[i].commChauf;tN+=venteTotalNet(ve[i]);}
-  txt+='*************************************\nTotal entrees: '+tE.toLocaleString('fr-FR')+' Ar\nComm. guides: '+tG.toLocaleString('fr-FR')+' Ar | Comm. chauffeurs: '+tC.toLocaleString('fr-FR')+' Ar | Total net: '+tN.toLocaleString('fr-FR')+' Ar\n\nVENTES ARTICLES\n';
-  var tB=0;for(var i=0;i<vb.length;i++){txt+=articleDisplayDate(vb[i].date)+' | '+vb[i].nom+' x '+vb[i].qty+': '+vb[i].montant.toLocaleString('fr-FR')+' Ar\n';tB+=vb[i].montant;}
-  txt+='Total articles: '+tB.toLocaleString('fr-FR')+' Ar';
-  var w=window.open('','_blank','width=500,height=750');
-  if(w){w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"/></head><body><pre style="font-family:monospace;font-size:13px;padding:24px;line-height:1.8">'+txt+'</pre><'+'script>window.print();setTimeout(function(){window.close();},1500);<'+'/script></body></html>');w.document.close();}
+
+  var tE=0,tG=0,tC=0,tN=0,tP=0,tB=0;
+  for(var i=0;i<ve.length;i++){
+    tE+=venteTotalEntrees(ve[i]);
+    tG+=ve[i].commGuide||0;
+    if(ve[i].avecChauf)tC+=ve[i].commChauf||0;
+    tN+=venteTotalNet(ve[i]);
+    tP+=ventePax(ve[i]);
+  }
+  for(var i=0;i<vb.length;i++)tB+=vb[i].montant||0;
+
+  var rowsE='';
+  if(!ve.length){
+    rowsE='<tr><td colspan="11" class="empty">Aucune vente entree sur cette periode</td></tr>';
+  }else{
+    for(var i=0;i<ve.length;i++){
+      var v=ve[i];
+      rowsE+='<tr>'+
+        '<td>'+safe(articleDisplayDate(v.date))+'</td>'+
+        '<td>'+safe(v.num)+'</td>'+
+        '<td>'+safe(v.client)+'</td>'+
+        '<td class="num">'+ventePax(v)+'</td>'+
+        '<td>'+safe(v.guide)+'</td>'+
+        '<td>'+safe(v.avecChauf?v.chauffeur:'--')+'</td>'+
+        '<td class="prest">'+prestationsHtml(v)+'</td>'+
+        '<td class="num">'+money(venteTotalEntrees(v))+'</td>'+
+        '<td class="num guide">'+money(v.commGuide||0)+'</td>'+
+        '<td class="num chauf">'+(v.avecChauf?money(v.commChauf||0):'--')+'</td>'+
+        '<td class="num net">'+money(venteTotalNet(v))+'</td>'+
+      '</tr>';
+    }
+    rowsE+='<tr class="total"><td colspan="3">Total ventes entrees</td><td class="num">'+tP+'</td><td colspan="3"></td><td class="num">'+money(tE)+'</td><td class="num guide">'+money(tG)+'</td><td class="num chauf">'+money(tC)+'</td><td class="num net">'+money(tN)+'</td></tr>';
+  }
+
+  var rowsB='';
+  if(!vb.length){
+    rowsB='<tr><td colspan="5" class="empty">Aucune vente article sur cette periode</td></tr>';
+  }else{
+    for(var j=0;j<vb.length;j++){
+      var b=vb[j];
+      rowsB+='<tr>'+
+        '<td>'+safe(articleDisplayDate(b.date))+'</td>'+
+        '<td>'+safe(b.num||'')+'</td>'+
+        '<td>'+safe(b.nom)+'</td>'+
+        '<td class="num">'+(b.qty||0)+'</td>'+
+        '<td class="num">'+money(b.montant||0)+'</td>'+
+      '</tr>';
+    }
+    rowsB+='<tr class="total"><td colspan="4">Total articles</td><td class="num">'+money(tB)+'</td></tr>';
+  }
+
+  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Rapport des ventes</title>'+
+  '<style>'+
+  '@page{size:A4 landscape;margin:10mm}'+
+  'body{font-family:Arial,sans-serif;color:#1f2a24;font-size:10.5px;margin:0}'+
+  '.head{display:flex;justify-content:space-between;gap:18px;border-bottom:3px solid #1D9E75;padding-bottom:10px;margin-bottom:12px}'+
+  '.org{line-height:1.45;color:#333}.title{text-align:right}.title h1{margin:0;color:#085041;font-size:22px}.title .period{margin-top:6px;font-weight:bold;color:#444}'+
+  '.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:12px 0}'+
+  '.stat{border:1px solid #d7e5df;border-radius:6px;padding:8px;text-align:center;background:#f7fbf9}.stat b{display:block;font-size:15px;color:#085041}.stat span{font-size:9px;color:#666}'+
+  'h2{font-size:13px;color:#085041;margin:14px 0 6px;border-bottom:1px solid #d7eee6;padding-bottom:4px}'+
+  'table{width:100%;border-collapse:collapse;table-layout:auto;margin-bottom:10px}'+
+  'th{background:#dff4ed;color:#064b3d;text-align:left;font-size:9px;padding:6px;border-bottom:2px solid #1D9E75}'+
+  'td{padding:5px 6px;border-bottom:1px solid #e6e6e6;vertical-align:top}'+
+  'tr:nth-child(even) td{background:#fafafa}.num{text-align:right;white-space:nowrap}.prest{min-width:150px}.guide{color:#9a5a00}.chauf{color:#185FA5}.net{color:#085041;font-weight:bold}.total td{background:#eef7f3!important;font-weight:bold;border-top:2px solid #1D9E75}.empty{text-align:center;color:#777;padding:14px}.foot{margin-top:12px;color:#777;font-size:9px;text-align:right}'+
+  '</style></head><body>'+
+  '<div class="head"><div class="org">'+safe(ENT).replace(/\n/g,'<br>')+'</div><div class="title"><h1>Rapport des ventes</h1><div class="period">'+safe(r.label)+'</div><div>Imprime le '+safe(new Date().toLocaleDateString('fr-FR'))+'</div></div></div>'+
+  '<div class="stats"><div class="stat"><b>'+money(tE)+'</b><span>CA entrees</span></div><div class="stat"><b>'+money(tB)+'</b><span>CA articles</span></div><div class="stat"><b>'+tP+'</b><span>visiteurs</span></div><div class="stat"><b>'+money(tG+tC)+'</b><span>commissions</span></div><div class="stat"><b>'+money(tN)+'</b><span>total net entrees</span></div></div>'+
+  '<h2>Ventes entrees</h2><table><thead><tr><th>Date</th><th>N</th><th>Client</th><th class="num">Vis.</th><th>Guide</th><th>Chauffeur</th><th>Prestations</th><th class="num">Total</th><th class="num">Comm. guide</th><th class="num">Comm. chauf.</th><th class="num">Total net</th></tr></thead><tbody>'+rowsE+'</tbody></table>'+
+  '<h2>Ventes articles</h2><table><thead><tr><th>Date</th><th>N</th><th>Article</th><th class="num">Qte</th><th class="num">Montant</th></tr></thead><tbody>'+rowsB+'</tbody></table>'+
+  '<div class="foot">Reserve Reniala - Rapport genere depuis la caisse</div>'+
+  '<script>window.print();setTimeout(function(){window.close();},1500);<\/script></body></html>';
+
+  var w=window.open('','_blank','width=1100,height=800');
+  if(w){w.document.write(html);w.document.close();}
 }
 function csvCell(v){
   var s=String(v==null?'':v);
