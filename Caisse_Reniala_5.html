@@ -374,6 +374,8 @@ body:not(.locked) #caisse-lock{display:none!important}
       </select>
       <input type="date" id="rj-start" onchange="renderJour()" style="display:none"/>
       <input type="date" id="rj-end" onchange="renderJour()" style="display:none"/>
+      <div class="fg" style="max-width:150px"><label>Fond depart</label><input type="number" id="fond-caisse" min="0" placeholder="0" onchange="saveCashControl();renderJour()"/></div>
+      <div class="fg" style="max-width:150px"><label>Montant compte</label><input type="number" id="caisse-comptee" min="0" placeholder="0" onchange="saveCashControl();renderJour()"/></div>
       <button class="btn2" onclick="renderJour()">Actualiser</button>
       <button class="btn1" onclick="printJour()">&#128424; Imprimer rapport</button>
       <button class="btn2" onclick="exportRapVentesCsv()">Exporter CSV</button>
@@ -497,7 +499,7 @@ var DEF_TARIFS=[
 ];
 var DEF_BOISSONS=[
   {id:1,nom:'Eau 50cl',stock:48,pa:500,pv:1500},
-  {id:2,nom:'Coca-Cola 33cl',stock:24,pa:1200,pv:3000},
+  {id:2,nom:'Coca-Cola 33cl',stock:9,pa:1200,pv:3000},
   {id:3,nom:'Fanta 33cl',stock:24,pa:1200,pv:3000},
   {id:4,nom:'Biere THB',stock:36,pa:2000,pv:5000},
   {id:5,nom:'Jus 25cl',stock:20,pa:800,pv:2500},
@@ -616,6 +618,25 @@ function applyConfigFromApi(data){
   if(cfg.boissons){B=cfg.boissons;sv('boissons',B);_configLoaded=true;}
   if(cfg.guides){G=cfg.guides;sv('guides',G);_configLoaded=true;}
   if(cfg.params){P=cfg.params;sv('params',P);_configLoaded=true;}
+  fixCocaStockOnce();
+}
+function fixCocaStockOnce(){
+  if(ld('fixCocaStock9Done',false))return;
+  var changed=false;
+  for(var i=0;i<B.length;i++){
+    var n=(B[i].nom||'').toLowerCase();
+    try{n=n.normalize('NFD').replace(/[\u0300-\u036f]/g,'');}catch(e){}
+    if(n.indexOf('coca')>=0){
+      B[i].stock=9;
+      if(!Array.isArray(B[i].stockEntries))B[i].stockEntries=[];
+      changed=true;
+    }
+  }
+  if(changed){
+    sv('fixCocaStock9Done',true);
+    sv('boissons',B);
+    apiPost('saveConfig',configPayload(),function(){});
+  }
 }
 function configPayload(){
   normalizeTarifs();
@@ -1868,18 +1889,51 @@ function articleSaleInRange(v,r){
   var d=articleDateObj(v.date);
   return d&&d>=r.start&&d<=r.end;
 }
+function cashControlKey(r){
+  if(!r)return 'today';
+  return articleIso(r.start)+'_'+articleIso(r.end);
+}
+function cashControls(){
+  return ld('cashControls',{});
+}
+function getCashControl(r){
+  var all=cashControls(),k=cashControlKey(r);
+  return all[k]||{fond:0,compte:0};
+}
+function loadCashControl(r){
+  var c=getCashControl(r),fond=document.getElementById('fond-caisse'),compte=document.getElementById('caisse-comptee');
+  if(fond)fond.value=c.fond||'';
+  if(compte)compte.value=c.compte||'';
+}
+function saveCashControl(){
+  var r=rapPeriodRange(),all=cashControls(),k=cashControlKey(r);
+  all[k]={
+    fond:cleanNum(document.getElementById('fond-caisse')&&document.getElementById('fond-caisse').value),
+    compte:cleanNum(document.getElementById('caisse-comptee')&&document.getElementById('caisse-comptee').value)
+  };
+  sv('cashControls',all);
+}
+function cashControlSummary(r,recettes){
+  var c=getCashControl(r),fond=cleanNum(c.fond),compte=cleanNum(c.compte),attendu=fond+recettes,ecart=compte-attendu;
+  return {fond:fond,compte:compte,recettes:recettes,attendu:attendu,ecart:ecart};
+}
 function renderJour(){
   var r=rapPeriodRange();
+  loadCashControl(r);
   var ve=[],vb=[];
   for(var i=0;i<VE.length;i++) if(venteInRange(VE[i],r)) ve.push(VE[i]);
   for(var i=0;i<VB.length;i++) if(articleSaleInRange(VB[i],r)) vb.push(VB[i]);
   var totE=0,totB=0,pax=0,tG=0,tC=0,tN=0;
   for(var i=0;i<ve.length;i++){totE+=venteTotalEntrees(ve[i]);tG+=ve[i].commGuide;if(ve[i].avecChauf)tC+=ve[i].commChauf;tN+=venteTotalNet(ve[i]);pax+=ventePax(ve[i]);}
   for(var i=0;i<vb.length;i++) totB+=vb[i].montant;
+  var cash=cashControlSummary(r,totE+totB);
   document.getElementById('jour-sum').innerHTML=
     '<div class="met"><div class="mval">'+totE.toLocaleString('fr-FR')+'</div><div class="mlbl">CA entrees (Ar)</div></div>'+
     '<div class="met"><div class="mval">'+totB.toLocaleString('fr-FR')+'</div><div class="mlbl">CA articles (Ar)</div></div>'+
-    '<div class="met"><div class="mval">'+pax+'</div><div class="mlbl">visiteurs</div></div>';
+    '<div class="met"><div class="mval">'+pax+'</div><div class="mlbl">visiteurs</div></div>'+
+    '<div class="met"><div class="mval">'+cash.recettes.toLocaleString('fr-FR')+'</div><div class="mlbl">recettes du jour (Ar)</div></div>'+
+    '<div class="met"><div class="mval">'+cash.attendu.toLocaleString('fr-FR')+'</div><div class="mlbl">attendu en caisse (Ar)</div></div>'+
+    '<div class="met"><div class="mval" style="color:'+(cash.ecart===0?'#085041':(cash.ecart<0?'#c00':'#BA7517'))+'">'+cash.ecart.toLocaleString('fr-FR')+'</div><div class="mlbl">ecart caisse (Ar)</div></div>';
   if(!ve.length){document.getElementById('jour-tab').innerHTML='<div class="empty">Aucune vente entree sur cette periode</div>';}
   else{
     var h='<table><thead><tr><th>Date</th><th>N</th><th>Client</th><th>Guide</th><th>Chauffeur</th><th>Prestations</th><th class="num">Visiteurs</th><th class="num">Total</th><th class="num" style="color:#BA7517">Comm. guide</th><th class="num" style="color:#185FA5">Comm. chauf.</th><th class="num" style="color:#085041">Total net</th></tr></thead><tbody>';
@@ -2063,6 +2117,7 @@ function printJour(){
     tP+=ventePax(ve[i]);
   }
   for(var i=0;i<vb.length;i++)tB+=vb[i].montant||0;
+  var cash=cashControlSummary(r,tE+tB);
 
   var rowsE='';
   if(!ve.length){
@@ -2110,7 +2165,7 @@ function printJour(){
   'body{font-family:Arial,sans-serif;color:#1f2a24;font-size:10.5px;margin:0}'+ 
   '.head{display:flex;justify-content:space-between;gap:18px;border-bottom:3px solid #1D9E75;padding-bottom:10px;margin-bottom:12px}'+ 
   '.org{line-height:1.45;color:#333}.title{text-align:right}.title h1{margin:0;color:#085041;font-size:22px}.title .period{margin-top:6px;font-weight:bold;color:#444}'+ 
-  '.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:12px 0}'+ 
+  '.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:12px 0}.stats.cash{grid-template-columns:repeat(4,1fr)}'+ 
   '.stat{border:1px solid #d7e5df;border-radius:6px;padding:8px;text-align:center;background:#f7fbf9}.stat b{display:block;font-size:15px;color:#085041}.stat span{font-size:9px;color:#666}'+ 
   'h2{font-size:13px;color:#085041;margin:14px 0 6px;border-bottom:1px solid #d7eee6;padding-bottom:4px}'+ 
   'table{width:100%;border-collapse:collapse;table-layout:auto;margin-bottom:10px}'+ 
@@ -2120,6 +2175,7 @@ function printJour(){
   '</style></head><body>'+ 
   '<div class="head"><div class="org">'+safe(ENT).replace(/\n/g,'<br>')+'</div><div class="title"><h1>Rapport des ventes</h1><div class="period">'+safe(r.label)+'</div><div>Imprime le '+safe(new Date().toLocaleDateString('fr-FR'))+'</div></div></div>'+ 
   '<div class="stats"><div class="stat"><b>'+money(tE)+'</b><span>CA entrees</span></div><div class="stat"><b>'+money(tB)+'</b><span>CA articles</span></div><div class="stat"><b>'+tP+'</b><span>visiteurs</span></div><div class="stat"><b>'+money(tG+tC)+'</b><span>commissions</span></div><div class="stat"><b>'+money(tN)+'</b><span>total net entrees</span></div></div>'+ 
+  '<h2>Controle caisse</h2><div class="stats cash"><div class="stat"><b>'+money(cash.fond)+'</b><span>fond depart</span></div><div class="stat"><b>'+money(cash.recettes)+'</b><span>recettes du jour</span></div><div class="stat"><b>'+money(cash.attendu)+'</b><span>attendu en caisse</span></div><div class="stat"><b style="color:'+(cash.ecart===0?'#085041':(cash.ecart<0?'#c00':'#BA7517'))+'">'+money(cash.ecart)+'</b><span>ecart caisse</span></div></div>'+ 
   '<h2>Ventes entrees</h2><table><thead><tr><th>Date</th><th>N</th><th>Client</th><th class="num">Vis.</th><th>Guide</th><th>Chauffeur</th><th>Prestations</th><th class="num">Total</th><th class="num">Comm. guide</th><th class="num">Comm. chauf.</th><th class="num">Total net</th></tr></thead><tbody>'+rowsE+'</tbody></table>'+ 
   '<h2>Ventes articles</h2><table><thead><tr><th>Date</th><th>N</th><th>Article</th><th class="num">Qte</th><th class="num">Montant</th></tr></thead><tbody>'+rowsB+'</tbody></table>'+ 
   '<div class="foot">Reserve Reniala - Rapport genere depuis la caisse</div>'+ 
@@ -2134,14 +2190,24 @@ function csvCell(v){
 }
 function exportRapVentesCsv(){
   var r=rapPeriodRange(),csv='Type;Date;Numero;Client/Article;Guide;Chauffeur;Quantite/Visiteurs;Montant;Comm guide;Comm chauffeur;Total net;Vendeur\n';
+  var totalEntreesCsv=0,totalArticlesCsv=0;
   for(var i=0;i<VE.length;i++){
     var v=VE[i];if(!venteInRange(v,r))continue;
+    totalEntreesCsv+=venteTotalEntrees(v);
     csv+=['Entree',articleDisplayDate(v.date),v.num||'',v.client||'',v.guide||'',v.avecChauf?(v.chauffeur||''):'',ventePax(v),venteTotalEntrees(v),v.commGuide||0,v.avecChauf?(v.commChauf||0):0,venteTotalNet(v),v.vendeur||''].map(csvCell).join(';')+'\n';
   }
   for(var j=0;j<VB.length;j++){
     var b=VB[j];if(!articleSaleInRange(b,r))continue;
+    totalArticlesCsv+=b.montant||0;
     csv+=['Article',articleDisplayDate(b.date),b.num||'',b.nom||'','','',b.qty||0,b.montant||0,'','',b.montant||0,b.vendeur||''].map(csvCell).join(';')+'\n';
   }
+  var cash=cashControlSummary(r,totalEntreesCsv+totalArticlesCsv);
+  csv+='\nControle caisse;;;;;;;Montant;;;;\n';
+  csv+=['Fond depart','','','','','','',cash.fond,'','','',''].map(csvCell).join(';')+'\n';
+  csv+=['Recettes du jour','','','','','','',cash.recettes,'','','',''].map(csvCell).join(';')+'\n';
+  csv+=['Attendu en caisse','','','','','','',cash.attendu,'','','',''].map(csvCell).join(';')+'\n';
+  csv+=['Montant compte','','','','','','',cash.compte,'','','',''].map(csvCell).join(';')+'\n';
+  csv+=['Ecart caisse','','','','','','',cash.ecart,'','','',''].map(csvCell).join(';')+'\n';
   var blob=new Blob([csv],{type:'text/csv;charset=utf-8'}),url=URL.createObjectURL(blob),a=document.createElement('a');
   a.href=url;a.download='rapport_ventes_'+r.label.replace(/[^0-9a-zA-Z]+/g,'_')+'.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},1000);
 }
