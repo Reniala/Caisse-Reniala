@@ -159,10 +159,10 @@ body:not(.locked) #caisse-lock{display:none!important}
   <div id="caisse-lock-msg" style="font-size:12px;color:#9b1c1c;margin-top:8px"></div>
 </div>
 
-<!-- BanniÃ¨re statut API -->
+<!-- BanniÃƒÂ¨re statut API -->
 <div id="api-status" style="display:none;align-items:center;gap:12px;background:#E1F5EE;border:1px solid #1D9E75;border-radius:8px;padding:10px 16px;margin-bottom:12px;font-size:13px">
   <div style="width:18px;height:18px;border:3px solid #1D9E75;border-top-color:transparent;border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0"></div>
-  <span class="api-msg" style="color:#085041;font-weight:bold">Connexion Ã  Google Sheetsâ€¦</span>
+  <span class="api-msg" style="color:#085041;font-weight:bold">Connexion ÃƒÂ  Google SheetsÃ¢â‚¬Â¦</span>
 </div>
 <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 
@@ -232,7 +232,7 @@ body:not(.locked) #caisse-lock{display:none!important}
   </div>
   <div class="panier">
     <div class="ptitle">&#128722; Panier</div>
-    <div id="plines"><div class="empty">Aucun article â€” selectionnez une prestation ci-dessus</div></div>
+    <div id="plines"><div class="empty">Aucun article Ã¢â‚¬â€ selectionnez une prestation ci-dessus</div></div>
     <div class="totrow" style="color:#BA7517"><span>Commission guide accompagnateur</span><span id="comm-guide-disp">0 Ar</span></div>
     <div class="totrow" style="font-size:16px;font-weight:bold;color:#085041"><span>TOTAL</span><span id="totdisp">0 Ar</span></div>
   </div>
@@ -273,7 +273,7 @@ body:not(.locked) #caisse-lock{display:none!important}
     <button class="htab" id="htab-hist" onclick="goHTab('hist',this)">&#128344; Historique complet</button>
   </div>
 
-  <!-- Panneau : DerniÃ¨re vente -->
+  <!-- Panneau : DerniÃƒÂ¨re vente -->
   <div id="hpanel-last" class="hpanel active">
     <div id="tprev"><div class="empty">Validez une vente depuis la Caisse pour voir les tickets.</div></div>
     <div class="arow" id="print-btns" style="display:none;margin-top:1rem">
@@ -304,10 +304,13 @@ body:not(.locked) #caisse-lock{display:none!important}
     <div class="fg"><label>Stock initial</label><input type="number" id="nb-stock" value="12" min="0"/></div>
     <div class="fg"><label>Prix achat (Ar)</label><input type="number" id="nb-achat" placeholder="1500"/></div>
     <div class="fg"><label>Prix vente (Ar)</label><input type="number" id="nb-vente" placeholder="4000"/></div>
+    <label class="btn2" style="align-self:flex-end;display:flex;gap:6px;align-items:center"><input type="checkbox" id="nb-stockable" checked/> Avec stock</label>
     <button class="btn1" onclick="ajouterBoisson()" style="align-self:flex-end">+ Ajouter</button>
   </div>
   <div class="stitle">&#128230; Stock articles</div>
-  <div class="sgrid" id="sgrid"></div>
+  <div class="sgrid" id="sgrid-stock"></div>
+  <div class="stitle">&#128230; Articles non stockes</div>
+  <div class="sgrid" id="sgrid-nostock"></div>
   <div class="stitle">&#128202; Analyse ventes articles</div>
   <div class="rfilter">
     <label>Periode</label>
@@ -404,14 +407,14 @@ body:not(.locked) #caisse-lock{display:none!important}
     <div class="param-row">
       <div>
         <div style="font-weight:bold">Recharger depuis Google Sheets</div>
-        <div style="font-size:11px;color:#888">Synchronise la caisse avec les derniÃ¨res ventes enregistrÃ©es dans le Sheet (utile si un autre poste a saisi des ventes).</div>
+        <div style="font-size:11px;color:#888">Synchronise la caisse avec les derniÃƒÂ¨res ventes enregistrÃƒÂ©es dans le Sheet (utile si un autre poste a saisi des ventes).</div>
       </div>
       <button class="btn1" onclick="apiGet(function(){initRap();renderBoissons();renderArticleAnalytics();alert('Synchronisation OK - '+VE.length+' ventes entrees, '+VB.length+' ventes articles.');})" style="white-space:nowrap">&#8635; Synchroniser</button>
     </div>
     <div class="param-row" style="margin-top:4px">
       <div>
-        <div style="font-weight:bold">&#128190; Migrer l'historique JSON â†’ Google Sheets</div>
-        <div style="font-size:11px;color:#888">One-shot : importe un fichier JSON exportÃ© depuis la v3/v4 vers Google Sheets. <strong style="color:#9b1c1c">Ã‰crase toutes les ventes existantes dans le Sheet.</strong></div>
+        <div style="font-weight:bold">&#128190; Migrer l'historique JSON Ã¢â€ â€™ Google Sheets</div>
+        <div style="font-size:11px;color:#888">One-shot : importe un fichier JSON exportÃƒÂ© depuis la v3/v4 vers Google Sheets. <strong style="color:#9b1c1c">Ãƒâ€°crase toutes les ventes existantes dans le Sheet.</strong></div>
       </div>
       <label class="btn2" style="cursor:pointer;white-space:nowrap;padding:9px 16px;font-size:13px;font-weight:bold;border-radius:6px;border:1px solid #ccc;color:#333;display:inline-block">
         &#11014; Migrer (.json)
@@ -487,13 +490,13 @@ var DEF_BOISSONS=[
 ];
 var DEF_GUIDES=['Julien','Bebe','Renaud','Domoina','Fetra'];
 
-// â”€â”€ CONFIG API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Proxy Cloudflare Worker (gÃ¨re le CORS vers Apps Script)
+// Ã¢â€â‚¬Ã¢â€â‚¬ CONFIG API Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+// Proxy Cloudflare Worker (gÃƒÂ¨re le CORS vers Apps Script)
 var API_URL = 'https://bold-grass-cfaf.maurice-adiba.workers.dev';
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
-// ParamÃ¨tres locaux (tarifs, guides, articles, config) â†’ localStorage
-// Ventes (VE, VB) â†’ Google Sheets via API
+// ParamÃƒÂ¨tres locaux (tarifs, guides, articles, config) Ã¢â€ â€™ localStorage
+// Ventes (VE, VB) Ã¢â€ â€™ Google Sheets via API
 function ld(k,d){try{var v=localStorage.getItem('rn_'+k);return v?JSON.parse(v):d;}catch(e){return d;}}
 function sv(k,v){try{localStorage.setItem('rn_'+k,JSON.stringify(v));}catch(e){}}
 
@@ -510,7 +513,7 @@ function normalizeTarifs(){
 }
 normalizeTarifs();
 
-// VE/VB/NID chargÃ©s depuis l'API au dÃ©marrage
+// VE/VB/NID chargÃƒÂ©s depuis l'API au dÃƒÂ©marrage
 var VE=[];
 var VB=[];
 var NID=1;
@@ -519,7 +522,7 @@ var _configLoaded=false;
 
 function showLoading(msg){
   var el=document.getElementById('api-status');
-  if(el){el.style.display='flex';el.querySelector('.api-msg').textContent=msg||'Chargementâ€¦';}
+  if(el){el.style.display='flex';el.querySelector('.api-msg').textContent=msg||'ChargementÃ¢â‚¬Â¦';}
 }
 function hideLoading(){
   var el=document.getElementById('api-status');
@@ -532,7 +535,7 @@ function showApiError(msg){
     el.style.background='#fff0f0';
     el.style.borderColor='#e33';
     el.querySelector('.api-msg').style.color='#c00';
-    el.querySelector('.api-msg').textContent='âš  '+msg;
+    el.querySelector('.api-msg').textContent='Ã¢Å¡Â  '+msg;
   }
 }
 
@@ -549,7 +552,7 @@ function showNotice(msg){
 }
 
 function apiGet(callback){
-  showLoading('Connexion Ã  Google Sheetsâ€¦');
+  showLoading('Connexion ÃƒÂ  Google SheetsÃ¢â‚¬Â¦');
   fetch(API_URL+'?action=getAll')
   .then(function(r){return r.json();})
   .then(function(data){
@@ -864,7 +867,7 @@ function renderTarifs(){
   for(var i=0;i<T.length;i++){
     var t=T[i];
     var d=document.createElement('div');
-    d.className='tcard'+(tarifSel&&tarifSel.code===t.code?' sel':'');
+    d.className='tcard'+(tarifSel===t?' sel':'');
     d.innerHTML='<div class="tcode">'+t.code+'</div><div class="tdesc">'+t.desc+'</div><div class="tprix">'+fmt(t.prix)+'</div>'+
       ((t.fraisGuide||0)>0?'<div class="tcomm" style="color:#185FA5">Frais guidage: '+fmt(t.fraisGuide)+'/'+fraisGuideLbl(t)+'</div>':'')+
       '<div class="tcomm">Comm: '+fmt(t.commGuide)+'/'+commLbl(t)+'</div>';
@@ -883,7 +886,7 @@ function ajouterBoissonPanier(){
   var id=parseInt(document.getElementById('cbsel').value),qty=parseInt(document.getElementById('cbqty').value)||1,prix=parseInt(document.getElementById('cbprix').value)||0;
   var b=getBoisson(id);
   if(!b){alert('Article introuvable');return;}
-  if(qteBoissonDansPanier(id)+qty>b.stock){alert('Stock insuffisant pour cet article');return;}
+  if(articleAvecStock(b)&&qteBoissonDansPanier(id)+qty>stockArticle(b)){alert('Stock insuffisant pour cet article');return;}
   panier.push({type:'boisson',boissonId:id,code:'BOIS',desc:b.nom,prix:prix,commGuide:0,nb:qty,montant:prix*qty});
   document.getElementById('cbqty').value=1;
   renderPanier();
@@ -915,14 +918,16 @@ function updateGuideSelects(){
 function verifierStockBoissonsPanier(){
   var besoin={};
   for(var i=0;i<panier.length;i++) if(isBoissonLine(panier[i])) besoin[panier[i].boissonId]=(besoin[panier[i].boissonId]||0)+panier[i].nb;
-  for(var id in besoin){var b=getBoisson(parseInt(id));if(!b||b.stock<besoin[id]){alert(b?'Stock insuffisant pour '+b.nom:'Article introuvable');return false;}}
+  for(var id in besoin){var b=getBoisson(parseInt(id));if(!b){alert('Article introuvable');return false;}if(articleAvecStock(b)&&stockArticle(b)<besoin[id]){alert('Stock insuffisant pour '+b.nom);return false;}}
   return true;
 }
 function enregistrerBoissonsPanier(date,num){
   for(var i=0;i<panier.length;i++){
     var l=panier[i];if(!isBoissonLine(l)) continue;
     var b=getBoisson(l.boissonId);if(!b) continue;
-    b.stock-=l.nb;VB.unshift({date:date,num:num,nom:b.nom,qty:l.nb,prix:l.prix,montant:l.montant});
+    if(articleAvecStock(b))b.stock=stockArticle(b)-l.nb;
+    else b.stock=0;
+    VB.unshift({date:date,num:num,nom:b.nom,qty:l.nb,prix:l.prix,montant:l.montant});
   }
   sv('boissons',B);sv('ventesBoissons',VB);
 }
@@ -959,17 +964,18 @@ function validerVente(){
   var nomChauf=chaufActif?getNomChauffeur():'';
   var cc=chaufActif?Math.round(baseChauf*pct/100):0;
 
-  // PrÃ©pare les lignes articles sÃ©parÃ©ment
+  // PrÃƒÂ©pare les lignes articles sÃƒÂ©parÃƒÂ©ment
   var lignesArticles=[];
   for(var i=0;i<panier.length;i++){
     var l=panier[i];
     if(isBoissonLine(l)){
       var b=getBoisson(l.boissonId);
-      if(b){b.stock-=l.nb;}
+      if(b&&articleAvecStock(b)){b.stock=stockArticle(b)-l.nb;}
+      else if(b){b.stock=0;}
       lignesArticles.push({date:date,num:num,nom:l.desc,qty:l.nb,prix:l.prix,montant:l.montant,vendeur:currentSellerName()});
     }
   }
-  sv('boissons',B); // stock local mis Ã  jour
+  sv('boissons',B); // stock local mis ÃƒÂ  jour
 
   var v={
     num:num,date:date,client:client,guide:guide,chauffeur:nomChauf,
@@ -979,9 +985,9 @@ function validerVente(){
     visiteurs:visiteurs,vendeur:currentSellerName()
   };
 
-  // DÃ©sactive le bouton pendant l'envoi
+  // DÃƒÂ©sactive le bouton pendant l'envoi
   var btnValider=document.querySelector('.btn1[onclick="validerVente()"]');
-  if(btnValider){btnValider.disabled=true;btnValider.textContent='Enregistrementâ€¦';}
+  if(btnValider){btnValider.disabled=true;btnValider.textContent='EnregistrementÃ¢â‚¬Â¦';}
 
   var panierContientEntreeFlag=panierContientEntree();
 
@@ -996,7 +1002,7 @@ function validerVente(){
       NID=resE.nextId;
       VE.unshift(v);
     } else {
-      alert('Erreur enregistrement vente entrÃ©e: '+(resE?resE.error:'rÃ©seau'));
+      alert('Erreur enregistrement vente entrÃƒÂ©e: '+(resE?resE.error:'rÃƒÂ©seau'));
     }
     if(lignesArticles.length){
       VB=lignesArticles.concat(VB);
@@ -1014,7 +1020,7 @@ function validerVente(){
   if(panierContientEntreeFlag){
     apiPost('addVenteEntree',v,afterEntree);
   } else {
-    // Vente articles seuls (pas d'entrÃ©e)
+    // Vente articles seuls (pas d'entrÃƒÂ©e)
     v.id=NID++;
     derniereVente=v;
     if(lignesArticles.length){
@@ -1307,42 +1313,64 @@ function printTicket(type){
 }
 function renderBoissons(){
   var tot=0,ca=0;
-  for(var i=0;i<B.length;i++) tot+=B[i].stock;
+  for(var i=0;i<B.length;i++) if(articleAvecStock(B[i])) tot+=stockArticle(B[i]);
   for(var i=0;i<VB.length;i++) ca+=VB[i].montant;
   document.getElementById('bois-sum').innerHTML=
     '<div class="met"><div class="mval">'+tot+'</div><div class="mlbl">unites en stock</div></div>'+
     '<div class="met"><div class="mval">'+VB.length+'</div><div class="mlbl">ventes articles</div></div>'+
     '<div class="met"><div class="mval">'+ca.toLocaleString('fr-FR')+'</div><div class="mlbl">CA articles (Ar)</div></div>';
-  var h='';
+  var hStock='',hNoStock='';
   for(var i=0;i<B.length;i++){
     var x=B[i];
-    h+='<div class="scard"><div class="sname">'+esc(x.nom)+'</div>'+
-    '<div class="sqty'+(x.stock<=5?' salert':'')+'">'+x.stock+'</div>'+
-    '<div class="sinfo">'+(x.stock<=5?'&#9888; Stock bas':'unites')+'</div>'+
+    var avecStock=articleAvecStock(x),stock=avecStock?stockArticle(x):0;
+    var card='<div class="scard"><div class="sname">'+esc(x.nom)+'</div>'+
+    '<div class="sqty'+(avecStock&&stock<=5?' salert':'')+'">'+stock+'</div>'+
+    '<div class="sinfo">'+(avecStock?(stock<=5?'&#9888; Stock bas':'unites'):'Sans stock')+'</div>'+
     '<div class="fg" style="margin-top:8px"><label>Prix vente</label><input type="number" value="'+x.pv+'" onchange="updArticlePrix('+x.id+',this.value)"/></div>'+
-    '<div class="qbtns"><button class="qb" onclick="ajustS('+x.id+',-1)">&#8722;</button>'+
-    '<button class="qb" onclick="ajustS('+x.id+',1)">+</button>'+
+    '<div class="qbtns"><button class="qb" '+(avecStock?'onclick="ajustS('+x.id+',-1)"':'disabled style="opacity:.35"')+'>&#8722;</button>'+
+    '<button class="qb" '+(avecStock?'onclick="ajustS('+x.id+',1)"':'disabled style="opacity:.35"')+'>+</button>'+
     '<button class="btn2" onclick="supprimerBoisson('+x.id+')" style="padding:6px 10px;font-size:12px;margin-left:auto">&#128465; Supprimer</button></div></div>';
+    if(avecStock) hStock+=card; else hNoStock+=card;
   }
-  document.getElementById('sgrid').innerHTML=h;
+  document.getElementById('sgrid-nostock').innerHTML=hNoStock||'<div class="empty">Aucun article non stocke</div>';
+  document.getElementById('sgrid-stock').innerHTML=hStock||'<div class="empty">Aucun article avec stock</div>';
   remplirSelectBoisson('bsel');
   onBoisSel();renderCaisseBoissons();renderVBois();
 }
 function remplirSelectBoisson(selId){
   var sel=document.getElementById(selId);if(!sel)return;
   sel.innerHTML='';
-  for(var i=0;i<B.length;i++) sel.innerHTML+='<option value="'+B[i].id+'">'+B[i].nom+' ('+fmt(B[i].pv)+') - stock '+B[i].stock+'</option>';
+  for(var i=0;i<B.length;i++){
+    var label=articleAvecStock(B[i])?'stock '+stockArticle(B[i]):'sans stock';
+    sel.innerHTML+='<option value="'+B[i].id+'">'+B[i].nom+' ('+fmt(B[i].pv)+') - '+label+'</option>';
+  }
 }
 function getBoisson(id){for(var i=0;i<B.length;i++) if(B[i].id===id)return B[i];return null;}
 function onBoisSel(){var el=document.getElementById('bsel');if(!el)return;var b=getBoisson(parseInt(el.value));if(b)document.getElementById('bprix').value=b.pv;}
 function renderCaisseBoissons(){remplirSelectBoisson('cbsel');onCaisseBoisSel();}
 function onCaisseBoisSel(){var el=document.getElementById('cbsel');if(!el)return;var b=getBoisson(parseInt(el.value));if(b)document.getElementById('cbprix').value=b.pv;}
-function ajustS(id,d){for(var i=0;i<B.length;i++) if(B[i].id===id){B[i].stock=Math.max(0,B[i].stock+d);break;}saveSharedConfig();renderBoissons();}
+function articleAvecStock(b){
+  if(!b)return true;
+  if(b.stockable===false||b.sansStock===true||b.stockMode==='none')return false;
+  if(b.stockable===true)return true;
+  var n=(b.nom||'').toLowerCase();
+  try{n=n.normalize('NFD').replace(/[\u0300-\u036f]/g,'');}catch(e){}
+  var sansStock=['menu complet','the','cafe','lait nestle','pdja','ckt','cdvb','consigne','soupe'];
+  for(var i=0;i<sansStock.length;i++) if(n.indexOf(sansStock[i])>=0)return false;
+  return true;
+}
+function stockArticle(b){return Math.max(0,parseInt(b&&b.stock,10)||0);}
+function updArticleStockable(id,on){
+  for(var i=0;i<B.length;i++) if(B[i].id===id){B[i].stockable=!!on;if(!on)B[i].stock=0;break;}
+  saveSharedConfig();renderBoissons();
+}
+function ajustS(id,d){for(var i=0;i<B.length;i++) if(B[i].id===id){if(!articleAvecStock(B[i]))return;B[i].stock=Math.max(0,stockArticle(B[i])+d);break;}saveSharedConfig();renderBoissons();}
 function updArticlePrix(id,v){for(var i=0;i<B.length;i++) if(B[i].id===id){B[i].pv=parseInt(v)||0;break;}saveSharedConfig();renderBoissons();}
 function ajouterBoisson(){
   var nom=document.getElementById('nb-nom').value.trim();if(!nom){alert('Entrez un nom');return;}
   var mx=0;for(var i=0;i<B.length;i++) if(B[i].id>mx) mx=B[i].id;
-  B.push({id:mx+1,nom:nom,stock:parseInt(document.getElementById('nb-stock').value)||0,pa:parseInt(document.getElementById('nb-achat').value)||0,pv:parseInt(document.getElementById('nb-vente').value)||0});
+  var avecStock=document.getElementById('nb-stockable').checked;
+  B.push({id:mx+1,nom:nom,stock:avecStock?(parseInt(document.getElementById('nb-stock').value)||0):0,stockable:avecStock,pa:parseInt(document.getElementById('nb-achat').value)||0,pv:parseInt(document.getElementById('nb-vente').value)||0});
   saveSharedConfig();document.getElementById('nb-nom').value='';renderBoissons();
 }
 function supprimerBoisson(id){
@@ -1357,8 +1385,11 @@ function supprimerBoisson(id){
 }
 function enregistrerVenteBoisson(id,qty,prix){
   var b=getBoisson(id);
-  if(!b||b.stock<qty){alert(b?'Stock insuffisant!':'Introuvable');return false;}
-  b.stock-=qty;VB.unshift({date:today(),nom:b.nom,qty:qty,prix:prix,montant:prix*qty});
+  if(!b){alert('Introuvable');return false;}
+  if(articleAvecStock(b)&&stockArticle(b)<qty){alert('Stock insuffisant!');return false;}
+  if(articleAvecStock(b))b.stock=stockArticle(b)-qty;
+  else b.stock=0;
+  VB.unshift({date:today(),nom:b.nom,qty:qty,prix:prix,montant:prix*qty});
   sv('boissons',B);sv('ventesBoissons',VB);renderBoissons();
   return true;
 }
@@ -1556,8 +1587,8 @@ function articleAnalyticsRows(forceAll){
     var v=normalizeArticleSale(VB[i]);
     if(!(r&&r.all)&&!articleInRange(v,r))continue;
     var name=v.nom||'--',qty=cleanNum(v.qty),amount=cleanNum(v.montant),cat=articleCatalogByName(name),pa=cat?cleanNum(cat.pa):0,cost=pa*qty,margin=amount-cost;
-    if(!map[name])map[name]={nom:name,qty:0,lignes:0,ca:0,cout:0,marge:0,stock:cat?cat.stock:''};
-    map[name].qty+=qty;map[name].lignes++;map[name].ca+=amount;map[name].cout+=cost;map[name].marge+=margin;if(cat)map[name].stock=cat.stock;
+    if(!map[name])map[name]={nom:name,qty:0,lignes:0,ca:0,cout:0,marge:0,stock:cat?(articleAvecStock(cat)?stockArticle(cat):'Sans stock'):''};
+    map[name].qty+=qty;map[name].lignes++;map[name].ca+=amount;map[name].cout+=cost;map[name].marge+=margin;if(cat)map[name].stock=articleAvecStock(cat)?stockArticle(cat):'Sans stock';
     var d=articleDisplayDate(v.date);if(!days[d])days[d]=[];days[d].push({nom:name,qty:qty,prix:v.prix||0,montant:amount,marge:margin,vendeur:v.vendeur||''});
   }
   var names=Object.keys(map).sort(function(a,b){return map[b].ca-map[a].ca;});
@@ -1865,18 +1896,18 @@ function printJour(){
   }else{
     for(var i=0;i<ve.length;i++){
       var v=ve[i];
-      rowsE+='<tr>'+
-        '<td>'+safe(articleDisplayDate(v.date))+'</td>'+
-        '<td>'+safe(v.num)+'</td>'+
-        '<td>'+safe(v.client)+'</td>'+
-        '<td class="num">'+ventePax(v)+'</td>'+
-        '<td>'+safe(v.guide)+'</td>'+
-        '<td>'+safe(v.avecChauf?v.chauffeur:'--')+'</td>'+
-        '<td class="prest">'+prestationsHtml(v)+'</td>'+
-        '<td class="num">'+money(venteTotalEntrees(v))+'</td>'+
-        '<td class="num guide">'+money(v.commGuide||0)+'</td>'+
-        '<td class="num chauf">'+(v.avecChauf?money(v.commChauf||0):'--')+'</td>'+
-        '<td class="num net">'+money(venteTotalNet(v))+'</td>'+
+      rowsE+='<tr>'+ 
+        '<td>'+safe(articleDisplayDate(v.date))+'</td>'+ 
+        '<td>'+safe(v.num)+'</td>'+ 
+        '<td>'+safe(v.client)+'</td>'+ 
+        '<td class="num">'+ventePax(v)+'</td>'+ 
+        '<td>'+safe(v.guide)+'</td>'+ 
+        '<td>'+safe(v.avecChauf?v.chauffeur:'--')+'</td>'+ 
+        '<td class="prest">'+prestationsHtml(v)+'</td>'+ 
+        '<td class="num">'+money(venteTotalEntrees(v))+'</td>'+ 
+        '<td class="num guide">'+money(v.commGuide||0)+'</td>'+ 
+        '<td class="num chauf">'+(v.avecChauf?money(v.commChauf||0):'--')+'</td>'+ 
+        '<td class="num net">'+money(venteTotalNet(v))+'</td>'+ 
       '</tr>';
     }
     rowsE+='<tr class="total"><td colspan="3">Total ventes entrees</td><td class="num">'+tP+'</td><td colspan="3"></td><td class="num">'+money(tE)+'</td><td class="num guide">'+money(tG)+'</td><td class="num chauf">'+money(tC)+'</td><td class="num net">'+money(tN)+'</td></tr>';
@@ -1888,36 +1919,36 @@ function printJour(){
   }else{
     for(var j=0;j<vb.length;j++){
       var b=vb[j];
-      rowsB+='<tr>'+
-        '<td>'+safe(articleDisplayDate(b.date))+'</td>'+
-        '<td>'+safe(b.num||'')+'</td>'+
-        '<td>'+safe(b.nom)+'</td>'+
-        '<td class="num">'+(b.qty||0)+'</td>'+
-        '<td class="num">'+money(b.montant||0)+'</td>'+
+      rowsB+='<tr>'+ 
+        '<td>'+safe(articleDisplayDate(b.date))+'</td>'+ 
+        '<td>'+safe(b.num||'')+'</td>'+ 
+        '<td>'+safe(b.nom)+'</td>'+ 
+        '<td class="num">'+(b.qty||0)+'</td>'+ 
+        '<td class="num">'+money(b.montant||0)+'</td>'+ 
       '</tr>';
     }
     rowsB+='<tr class="total"><td colspan="4">Total articles</td><td class="num">'+money(tB)+'</td></tr>';
   }
 
-  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Rapport des ventes</title>'+
-  '<style>'+
-  '@page{size:A4 landscape;margin:10mm}'+
-  'body{font-family:Arial,sans-serif;color:#1f2a24;font-size:10.5px;margin:0}'+
-  '.head{display:flex;justify-content:space-between;gap:18px;border-bottom:3px solid #1D9E75;padding-bottom:10px;margin-bottom:12px}'+
-  '.org{line-height:1.45;color:#333}.title{text-align:right}.title h1{margin:0;color:#085041;font-size:22px}.title .period{margin-top:6px;font-weight:bold;color:#444}'+
-  '.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:12px 0}'+
-  '.stat{border:1px solid #d7e5df;border-radius:6px;padding:8px;text-align:center;background:#f7fbf9}.stat b{display:block;font-size:15px;color:#085041}.stat span{font-size:9px;color:#666}'+
-  'h2{font-size:13px;color:#085041;margin:14px 0 6px;border-bottom:1px solid #d7eee6;padding-bottom:4px}'+
-  'table{width:100%;border-collapse:collapse;table-layout:auto;margin-bottom:10px}'+
-  'th{background:#dff4ed;color:#064b3d;text-align:left;font-size:9px;padding:6px;border-bottom:2px solid #1D9E75}'+
-  'td{padding:5px 6px;border-bottom:1px solid #e6e6e6;vertical-align:top}'+
-  'tr:nth-child(even) td{background:#fafafa}.num{text-align:right;white-space:nowrap}.prest{min-width:150px}.guide{color:#9a5a00}.chauf{color:#185FA5}.net{color:#085041;font-weight:bold}.total td{background:#eef7f3!important;font-weight:bold;border-top:2px solid #1D9E75}.empty{text-align:center;color:#777;padding:14px}.foot{margin-top:12px;color:#777;font-size:9px;text-align:right}'+
-  '</style></head><body>'+
-  '<div class="head"><div class="org">'+safe(ENT).replace(/\n/g,'<br>')+'</div><div class="title"><h1>Rapport des ventes</h1><div class="period">'+safe(r.label)+'</div><div>Imprime le '+safe(new Date().toLocaleDateString('fr-FR'))+'</div></div></div>'+
-  '<div class="stats"><div class="stat"><b>'+money(tE)+'</b><span>CA entrees</span></div><div class="stat"><b>'+money(tB)+'</b><span>CA articles</span></div><div class="stat"><b>'+tP+'</b><span>visiteurs</span></div><div class="stat"><b>'+money(tG+tC)+'</b><span>commissions</span></div><div class="stat"><b>'+money(tN)+'</b><span>total net entrees</span></div></div>'+
-  '<h2>Ventes entrees</h2><table><thead><tr><th>Date</th><th>N</th><th>Client</th><th class="num">Vis.</th><th>Guide</th><th>Chauffeur</th><th>Prestations</th><th class="num">Total</th><th class="num">Comm. guide</th><th class="num">Comm. chauf.</th><th class="num">Total net</th></tr></thead><tbody>'+rowsE+'</tbody></table>'+
-  '<h2>Ventes articles</h2><table><thead><tr><th>Date</th><th>N</th><th>Article</th><th class="num">Qte</th><th class="num">Montant</th></tr></thead><tbody>'+rowsB+'</tbody></table>'+
-  '<div class="foot">Reserve Reniala - Rapport genere depuis la caisse</div>'+
+  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Rapport des ventes</title>'+ 
+  '<style>'+ 
+  '@page{size:A4 landscape;margin:10mm}'+ 
+  'body{font-family:Arial,sans-serif;color:#1f2a24;font-size:10.5px;margin:0}'+ 
+  '.head{display:flex;justify-content:space-between;gap:18px;border-bottom:3px solid #1D9E75;padding-bottom:10px;margin-bottom:12px}'+ 
+  '.org{line-height:1.45;color:#333}.title{text-align:right}.title h1{margin:0;color:#085041;font-size:22px}.title .period{margin-top:6px;font-weight:bold;color:#444}'+ 
+  '.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:12px 0}'+ 
+  '.stat{border:1px solid #d7e5df;border-radius:6px;padding:8px;text-align:center;background:#f7fbf9}.stat b{display:block;font-size:15px;color:#085041}.stat span{font-size:9px;color:#666}'+ 
+  'h2{font-size:13px;color:#085041;margin:14px 0 6px;border-bottom:1px solid #d7eee6;padding-bottom:4px}'+ 
+  'table{width:100%;border-collapse:collapse;table-layout:auto;margin-bottom:10px}'+ 
+  'th{background:#dff4ed;color:#064b3d;text-align:left;font-size:9px;padding:6px;border-bottom:2px solid #1D9E75}'+ 
+  'td{padding:5px 6px;border-bottom:1px solid #e6e6e6;vertical-align:top}'+ 
+  'tr:nth-child(even) td{background:#fafafa}.num{text-align:right;white-space:nowrap}.prest{min-width:150px}.guide{color:#9a5a00}.chauf{color:#185FA5}.net{color:#085041;font-weight:bold}.total td{background:#eef7f3!important;font-weight:bold;border-top:2px solid #1D9E75}.empty{text-align:center;color:#777;padding:14px}.foot{margin-top:12px;color:#777;font-size:9px;text-align:right}'+ 
+  '</style></head><body>'+ 
+  '<div class="head"><div class="org">'+safe(ENT).replace(/\n/g,'<br>')+'</div><div class="title"><h1>Rapport des ventes</h1><div class="period">'+safe(r.label)+'</div><div>Imprime le '+safe(new Date().toLocaleDateString('fr-FR'))+'</div></div></div>'+ 
+  '<div class="stats"><div class="stat"><b>'+money(tE)+'</b><span>CA entrees</span></div><div class="stat"><b>'+money(tB)+'</b><span>CA articles</span></div><div class="stat"><b>'+tP+'</b><span>visiteurs</span></div><div class="stat"><b>'+money(tG+tC)+'</b><span>commissions</span></div><div class="stat"><b>'+money(tN)+'</b><span>total net entrees</span></div></div>'+ 
+  '<h2>Ventes entrees</h2><table><thead><tr><th>Date</th><th>N</th><th>Client</th><th class="num">Vis.</th><th>Guide</th><th>Chauffeur</th><th>Prestations</th><th class="num">Total</th><th class="num">Comm. guide</th><th class="num">Comm. chauf.</th><th class="num">Total net</th></tr></thead><tbody>'+rowsE+'</tbody></table>'+ 
+  '<h2>Ventes articles</h2><table><thead><tr><th>Date</th><th>N</th><th>Article</th><th class="num">Qte</th><th class="num">Montant</th></tr></thead><tbody>'+rowsB+'</tbody></table>'+ 
+  '<div class="foot">Reserve Reniala - Rapport genere depuis la caisse</div>'+ 
   '<script>window.print();setTimeout(function(){window.close();},1500);<\/script></body></html>';
 
   var w=window.open('','_blank','width=1100,height=800');
@@ -2028,36 +2059,36 @@ function suppTarif(i){
 function migrerDepuisJson(input){
   var file=input.files[0];if(!file)return;
   var st=document.getElementById('import-status');
-  st.style.color='#555';st.textContent='Lecture du fichierâ€¦';
+  st.style.color='#555';st.textContent='Lecture du fichierÃ¢â‚¬Â¦';
   var reader=new FileReader();
   reader.onload=function(e){
     try{
       var data=JSON.parse(e.target.result);
       if(!data.ventesEntree||!data.ventesBoissons){throw new Error('Format invalide');}
-      if(!confirm('Migrer '+data.ventesEntree.length+' ventes entrÃ©es et '+data.ventesBoissons.length+' ventes articles vers Google Sheets ?\n\nATTENTION : toutes les ventes actuelles dans le Sheet seront remplacÃ©es.')){input.value='';st.textContent='';return;}
-      st.textContent='Envoi vers Google Sheetsâ€¦ (peut prendre 10-30s)';
+      if(!confirm('Migrer '+data.ventesEntree.length+' ventes entrÃƒÂ©es et '+data.ventesBoissons.length+' ventes articles vers Google Sheets ?\n\nATTENTION : toutes les ventes actuelles dans le Sheet seront remplacÃƒÂ©es.')){input.value='';st.textContent='';return;}
+      st.textContent='Envoi vers Google SheetsÃ¢â‚¬Â¦ (peut prendre 10-30s)';
       apiPost('importAll',data,function(res){
         if(res&&res.ok){
           VE=(data.ventesEntree||[]).map(normalizeVenteEntree);VB=(data.ventesBoissons||[]).map(normalizeArticleSale);NID=data.nextId||1;
           setDerniereVenteDepuisHistorique();
           st.style.color='#085041';
-          st.textContent='âœ“ Migration rÃ©ussie : '+res.countE+' ventes entrÃ©es et '+res.countB+' ventes articles dans Google Sheets.';
+          st.textContent='Ã¢Å“â€œ Migration rÃƒÂ©ussie : '+res.countE+' ventes entrÃƒÂ©es et '+res.countB+' ventes articles dans Google Sheets.';
           initRap();renderBoissons();renderParams();
         } else {
           st.style.color='#9b1c1c';
-          st.textContent='âœ— Erreur : '+(res?res.error:'rÃ©seau');
+          st.textContent='Ã¢Å“â€” Erreur : '+(res?res.error:'rÃƒÂ©seau');
         }
       });
     }catch(err){
       st.style.color='#9b1c1c';
-      st.textContent='âœ— Erreur lecture fichier : '+err.message;
+      st.textContent='Ã¢Å“â€” Erreur lecture fichier : '+err.message;
     }
     input.value='';
   };
   reader.readAsText(file);
 }
 
-// â”€â”€ INITIALISATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬ INITIALISATION Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function startApp(){
   if(appStarted)return;
   appStarted=true;
@@ -2085,3 +2116,4 @@ setTimeout(function(){
 </script>
 </body>
 </html>
+
