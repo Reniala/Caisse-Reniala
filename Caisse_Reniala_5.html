@@ -112,6 +112,25 @@ th{text-align:left;padding:8px 10px;border-bottom:2px solid #1D9E75;color:#08504
 td{padding:8px 10px;border-bottom:1px solid #f0f0f0;color:#333}
 .num{text-align:right}
 .r-total td{font-weight:bold;background:#f5f5f5}
+.stock-follow{margin-bottom:1.2rem;overflow-x:auto}
+.stock-follow th{background:#085041;color:#fff;border-bottom-color:#1D9E75;text-align:center}
+.stock-follow td{background:#fff}
+.stock-follow .soft{background:#FAEEDA}
+.stock-follow .stock-ok{color:#1D9E75;font-weight:bold;white-space:nowrap}
+.stock-follow .stock-alert{color:#9b1c1c;font-weight:bold;white-space:nowrap}
+.stock-detail{display:block}
+.stock-detail summary{cursor:pointer;list-style:none;color:#085041;font-weight:bold}
+.stock-detail summary::-webkit-details-marker{display:none}
+.stock-detail[open] .stock-pop{display:block}
+.stock-pop{display:none;min-width:190px;background:#fff;border:1px solid #ccc;border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,0.12);padding:8px;margin-top:6px;text-align:left;font-size:12px;line-height:1.5}
+.stock-pop div{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #eee;padding:3px 0}
+.stock-pop div:last-child{border-bottom:none}
+.stock-pop .stock-edit{display:grid;grid-template-columns:1fr 70px;border-bottom:1px solid #eee;gap:6px;align-items:center;padding:5px 0}
+.stock-pop .stock-edit input{width:100%;border:1px solid #ccc;border-radius:4px;padding:4px 6px;font-size:12px}
+.stock-help{font-size:11px;color:#777;margin-bottom:5px;text-align:left}
+.stock-click-cell{cursor:pointer}
+.stock-click-cell:hover{background:#E1F5EE}
+.stock-click-cell summary{display:block;padding:8px 10px;margin:-8px -10px}
 .month-card{background:#fff;border:1px solid #ddd;border-radius:8px;padding:14px;margin-bottom:10px}
 .mc-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;border-bottom:1px solid #eee;padding-bottom:8px}
 .mc-m{font-size:15px;font-weight:bold;color:#085041}
@@ -307,10 +326,10 @@ body:not(.locked) #caisse-lock{display:none!important}
     <label class="btn2" style="align-self:flex-end;display:flex;gap:6px;align-items:center"><input type="checkbox" id="nb-stockable" checked/> Avec stock</label>
     <button class="btn1" onclick="ajouterBoisson()" style="align-self:flex-end">+ Ajouter</button>
   </div>
-  <div class="stitle">&#128230; Stock articles</div>
-  <div class="sgrid" id="sgrid-stock"></div>
-  <div class="stitle">&#128230; Articles non stockes</div>
-  <div class="sgrid" id="sgrid-nostock"></div>
+  <div class="stitle">&#128203; Catalogue articles</div>
+  <div class="stock-follow" id="article-catalogue"></div>
+  <div class="stitle">&#128230; Gestion du stock</div>
+  <div class="stock-follow" id="stock-management"></div>
   <div class="stitle">&#128202; Analyse ventes articles</div>
   <div class="rfilter">
     <label>Periode</label>
@@ -1319,21 +1338,8 @@ function renderBoissons(){
     '<div class="met"><div class="mval">'+tot+'</div><div class="mlbl">unites en stock</div></div>'+
     '<div class="met"><div class="mval">'+VB.length+'</div><div class="mlbl">ventes articles</div></div>'+
     '<div class="met"><div class="mval">'+ca.toLocaleString('fr-FR')+'</div><div class="mlbl">CA articles (Ar)</div></div>';
-  var hStock='',hNoStock='';
-  for(var i=0;i<B.length;i++){
-    var x=B[i];
-    var avecStock=articleAvecStock(x),stock=avecStock?stockArticle(x):0;
-    var card='<div class="scard"><div class="sname">'+esc(x.nom)+'</div>'+
-    '<div class="sqty'+(avecStock&&stock<=5?' salert':'')+'">'+stock+'</div>'+
-    '<div class="sinfo">'+(avecStock?(stock<=5?'&#9888; Stock bas':'unites'):'Sans stock')+'</div>'+
-    '<div class="fg" style="margin-top:8px"><label>Prix vente</label><input type="number" value="'+x.pv+'" onchange="updArticlePrix('+x.id+',this.value)"/></div>'+
-    '<div class="qbtns"><button class="qb" '+(avecStock?'onclick="ajustS('+x.id+',-1)"':'disabled style="opacity:.35"')+'>&#8722;</button>'+
-    '<button class="qb" '+(avecStock?'onclick="ajustS('+x.id+',1)"':'disabled style="opacity:.35"')+'>+</button>'+
-    '<button class="btn2" onclick="supprimerBoisson('+x.id+')" style="padding:6px 10px;font-size:12px;margin-left:auto">&#128465; Supprimer</button></div></div>';
-    if(avecStock) hStock+=card; else hNoStock+=card;
-  }
-  document.getElementById('sgrid-nostock').innerHTML=hNoStock||'<div class="empty">Aucun article non stocke</div>';
-  document.getElementById('sgrid-stock').innerHTML=hStock||'<div class="empty">Aucun article avec stock</div>';
+  renderArticleCatalogue();
+  renderStockManagement();
   remplirSelectBoisson('bsel');
   onBoisSel();renderCaisseBoissons();renderVBois();
 }
@@ -1349,28 +1355,196 @@ function getBoisson(id){for(var i=0;i<B.length;i++) if(B[i].id===id)return B[i];
 function onBoisSel(){var el=document.getElementById('bsel');if(!el)return;var b=getBoisson(parseInt(el.value));if(b)document.getElementById('bprix').value=b.pv;}
 function renderCaisseBoissons(){remplirSelectBoisson('cbsel');onCaisseBoisSel();}
 function onCaisseBoisSel(){var el=document.getElementById('cbsel');if(!el)return;var b=getBoisson(parseInt(el.value));if(b)document.getElementById('cbprix').value=b.pv;}
+function articleNameKey(n){
+  n=(n||'').toString().toLowerCase();
+  try{n=n.normalize('NFD').replace(/[\u0300-\u036f]/g,'');}catch(e){}
+  return n.replace(/\s+/g,' ').trim();
+}
 function articleAvecStock(b){
   if(!b)return true;
   if(b.stockable===false||b.sansStock===true||b.stockMode==='none')return false;
   if(b.stockable===true)return true;
-  var n=(b.nom||'').toLowerCase();
-  try{n=n.normalize('NFD').replace(/[\u0300-\u036f]/g,'');}catch(e){}
+  var n=articleNameKey(b.nom);
   var sansStock=['menu complet','the','cafe','lait nestle','pdja','ckt','cdvb','consigne','soupe'];
   for(var i=0;i<sansStock.length;i++) if(n.indexOf(sansStock[i])>=0)return false;
   return true;
 }
 function stockArticle(b){return Math.max(0,parseInt(b&&b.stock,10)||0);}
+function articlePrixAchat(b){
+  if(!b)return 0;
+  var pa1=cleanNum(b.pa),pa2=cleanNum(b.pa2);
+  return (b.paMode==='pa2'&&pa2>0)?pa2:pa1;
+}
+function articleStockEntries(b){
+  var a=b&&b.stockEntries;
+  return Array.isArray(a)?a:[];
+}
+function articleInputDate(d){
+  d=articleDateOnly(d||today());
+  return /^\d{4}-\d{2}-\d{2}$/.test(d)?d:today();
+}
+function articleSalesDetails(items,emptyMsg){
+  var title=[],pop='';
+  if(!items.length){
+    return '<details class="stock-detail"><summary title="'+esc(emptyMsg)+'">0</summary><div class="stock-pop"><p class="stock-help">'+esc(emptyMsg)+'</p></div></details>';
+  }
+  for(var i=0;i<items.length;i++){
+    var line=articleDisplayDate(items[i].date)+' : '+items[i].qty;
+    title.push(line);
+    pop+='<div><span>'+esc(articleDisplayDate(items[i].date))+'</span><strong>'+items[i].qty+'</strong></div>';
+  }
+  var total=0;for(var j=0;j<items.length;j++)total+=items[j].qty;
+  return '<details class="stock-detail"><summary title="'+esc(title.join('\n'))+'">'+total+'</summary><div class="stock-pop">'+pop+'</div></details>';
+}
+function articleEntriesDetails(articleId,items){
+  var title=[],pop='<p class="stock-help">Modifier la date ou la quantite : sauvegarde automatique.</p>',total=0;
+  if(!items.length){
+    return '<details class="stock-detail"><summary title="Aucune entree de stock datee">0</summary><div class="stock-pop"><p class="stock-help">Aucune entree de stock datee.</p></div></details>';
+  }
+  for(var i=0;i<items.length;i++){
+    total+=items[i].qty;
+    title.push(articleDisplayDate(items[i].date)+' : '+items[i].qty);
+    pop+='<div class="stock-edit">'+
+      '<input type="date" value="'+esc(articleInputDate(items[i].date))+'" onchange="updArticleStockEntry('+articleId+','+items[i].index+',\'date\',this.value)"/>'+
+      '<input type="number" min="0" value="'+items[i].qty+'" onchange="updArticleStockEntry('+articleId+','+items[i].index+',\'qty\',this.value)"/>'+
+    '</div>';
+  }
+  return '<details class="stock-detail"><summary title="'+esc(title.join('\n'))+'">'+total+'</summary><div class="stock-pop">'+pop+'</div></details>';
+}
+function articleStockRows(){
+  var salesByName={},entriesById={};
+  for(var i=0;i<VB.length;i++){
+    var v=normalizeArticleSale(VB[i]),k=articleNameKey(v.nom),d=articleDisplayDate(v.date),q=cleanNum(v.qty);
+    if(!k||!q)continue;
+    if(!salesByName[k])salesByName[k]={};
+    salesByName[k][d]=(salesByName[k][d]||0)+q;
+  }
+  for(var j=0;j<B.length;j++){
+    var b=B[j],arr=articleStockEntries(b),m={};
+    for(var e=0;e<arr.length;e++){
+      var d2=articleDisplayDate(arr[e].date),q2=cleanNum(arr[e].qty);
+      if(!q2)continue;
+      m[d2+'#'+e]={date:d2,qty:q2,index:e};
+    }
+    entriesById[b.id]=[];
+    for(var mk in m)entriesById[b.id].push(m[mk]);
+  }
+  var rows=[];
+  for(var x=0;x<B.length;x++){
+    var art=B[x];
+    if(!articleAvecStock(art))continue;
+    var stock=stockArticle(art),key=articleNameKey(art.nom),salesMap=salesByName[key]||{},entryList=entriesById[art.id]||[];
+    var sorties=0,entrees=0,sales=[],entries=[];
+    for(var sd in salesMap){sorties+=salesMap[sd];sales.push({date:sd,qty:salesMap[sd]});}
+    for(var ed=0;ed<entryList.length;ed++){entrees+=entryList[ed].qty;entries.push(entryList[ed]);}
+    sales.sort(function(a,b){return a.date<b.date?1:-1;});
+    entries.sort(function(a,b){return a.date<b.date?1:-1;});
+    rows.push({id:art.id,nom:art.nom,initial:stock+sorties-entrees,entrees:entrees,sorties:sorties,stock:stock,seuil:cleanNum(art.seuil)||5,entries:entries,sales:sales});
+  }
+  return rows;
+}
+function renderArticleStockFollow(){
+  var el=document.getElementById('article-stock-follow');if(!el)return;
+  var rows=articleStockRows();
+  if(!rows.length){el.innerHTML='<div class="empty">Aucun article avec stock</div>';return;}
+  var h='<table><thead><tr><th>Article</th><th class="num">Stock initial<br>(unites)</th><th class="num">Entrees<br>(achats)</th><th class="num">Sorties<br>(ventes)</th><th class="num">Stock actuel<br>(unites)</th><th class="num">Seuil<br>alerte</th><th>Statut</th></tr></thead><tbody>';
+  for(var i=0;i<rows.length;i++){
+    var r=rows[i],alert=r.stock<=r.seuil;
+    h+='<tr><td>'+esc(r.nom)+'</td>'+
+      '<td class="num soft">'+r.initial+'</td>'+
+      '<td class="num stock-click-cell">'+articleEntriesDetails(r.id,r.entries)+'</td>'+
+      '<td class="num stock-click-cell">'+articleSalesDetails(r.sales,'Aucune vente datee')+'</td>'+
+      '<td class="num"><strong>'+r.stock+'</strong></td>'+
+      '<td class="num soft">'+r.seuil+'</td>'+
+      '<td class="'+(alert?'stock-alert':'stock-ok')+'">'+(alert?'&#9888; A commander':'&#9989; OK')+'</td></tr>';
+  }
+  h+='</tbody></table>';
+  el.innerHTML=h;
+}
+function renderArticleCatalogue(){
+  var el=document.getElementById('article-catalogue');if(!el)return;
+  if(!B.length){el.innerHTML='<div class="empty">Aucun article au catalogue</div>';return;}
+  var h='<table><thead><tr><th>Article</th><th>Type</th><th class="num">Prix achat 1</th><th class="num">Prix achat 2</th><th>Prix utilise</th><th class="num">Prix vente</th><th class="num">Stock</th><th>Action</th></tr></thead><tbody>';
+  for(var i=0;i<B.length;i++){
+    var b=B[i],avecStock=articleAvecStock(b),stock=avecStock?stockArticle(b):0;
+    var mode=b.paMode==='pa2'?'pa2':'pa';
+    h+='<tr>'+
+      '<td><input type="text" value="'+esc(b.nom)+'" onchange="updArticleNom('+b.id+',this.value)" style="width:100%;border:1px solid #ccc;border-radius:4px;padding:6px 8px"/></td>'+
+      '<td>'+(avecStock?'<span class="stock-ok">Avec stock</span>':'<span style="color:#777;font-weight:bold">Sans stock</span>')+'</td>'+
+      '<td class="num"><input type="number" value="'+(b.pa||0)+'" onchange="updArticleAchat('+b.id+',this.value)" style="width:95px;text-align:right;border:1px solid #ccc;border-radius:4px;padding:6px 8px"/></td>'+
+      '<td class="num"><input type="number" value="'+(b.pa2||0)+'" onchange="updArticleAchat2('+b.id+',this.value)" style="width:95px;text-align:right;border:1px solid #ccc;border-radius:4px;padding:6px 8px"/></td>'+
+      '<td><select onchange="updArticleAchatMode('+b.id+',this.value)" style="border:1px solid #ccc;border-radius:4px;padding:6px 8px;background:#fff"><option value="pa" '+(mode==='pa'?'selected':'')+'>Prix 1</option><option value="pa2" '+(mode==='pa2'?'selected':'')+'>Prix 2</option></select></td>'+
+      '<td class="num"><input type="number" value="'+(b.pv||0)+'" onchange="updArticlePrix('+b.id+',this.value)" style="width:95px;text-align:right;border:1px solid #ccc;border-radius:4px;padding:6px 8px"/></td>'+
+      '<td class="num">'+(avecStock?stock:'-')+'</td>'+
+      '<td><button class="btn2" onclick="supprimerBoisson('+b.id+')" style="padding:6px 10px;font-size:12px">&#128465; Supprimer</button></td>'+
+    '</tr>';
+  }
+  h+='</tbody></table>';
+  el.innerHTML=h;
+}
+function renderStockManagement(){
+  var el=document.getElementById('stock-management');if(!el)return;
+  var rows=articleStockRows();
+  if(!rows.length){el.innerHTML='<div class="empty">Aucun article avec stock</div>';return;}
+  var h='<table><thead><tr><th>Article</th><th class="num">Stock actuel</th><th class="num">Quantite entree</th><th>Date entree</th><th class="num">Seuil</th><th class="num">Sorties</th><th>Historique entrees</th><th>Statut</th><th>Action</th></tr></thead><tbody>';
+  for(var i=0;i<rows.length;i++){
+    var r=rows[i],alert=r.stock<=r.seuil;
+    h+='<tr>'+
+      '<td>'+esc(r.nom)+'</td>'+
+      '<td class="num"><strong>'+r.stock+'</strong></td>'+
+      '<td class="num"><input type="number" min="1" id="stock-add-'+r.id+'" placeholder="0" style="width:80px;text-align:right;border:1px solid #ccc;border-radius:4px;padding:6px 8px"/></td>'+
+      '<td><input type="date" id="stock-date-'+r.id+'" value="'+today()+'" style="border:1px solid #ccc;border-radius:4px;padding:6px 8px"/></td>'+
+      '<td class="num soft"><input type="number" min="0" value="'+r.seuil+'" onchange="updArticleSeuil('+r.id+',this.value)" style="width:70px;text-align:right;border:1px solid #ccc;border-radius:4px;padding:6px 8px"/></td>'+
+      '<td class="num stock-click-cell">'+articleSalesDetails(r.sales,'Aucune vente datee')+'</td>'+
+      '<td class="stock-click-cell">'+articleEntriesDetails(r.id,r.entries)+'</td>'+
+      '<td class="'+(alert?'stock-alert':'stock-ok')+'">'+(alert?'&#9888; A commander':'&#9989; OK')+'</td>'+
+      '<td><button class="btn1" onclick="ajouterStockArticle('+r.id+')" style="padding:7px 12px;font-size:12px">+ Ajouter au stock</button></td>'+
+    '</tr>';
+  }
+  h+='</tbody></table>';
+  el.innerHTML=h;
+}
+function updArticleStockEntry(articleId,index,field,value){
+  var b=getBoisson(articleId);if(!b)return;
+  if(!Array.isArray(b.stockEntries))b.stockEntries=[];
+  if(!b.stockEntries[index])return;
+  if(field==='date'){
+    b.stockEntries[index].date=articleInputDate(value);
+  }else if(field==='qty'){
+    var old=cleanNum(b.stockEntries[index].qty),qty=Math.max(0,cleanNum(value));
+    b.stockEntries[index].qty=qty;
+    b.stock=Math.max(0,stockArticle(b)+(qty-old));
+  }
+  saveSharedConfig();renderBoissons();
+}
+function ajouterStockArticle(id){
+  var b=getBoisson(id);if(!b||!articleAvecStock(b))return;
+  var qEl=document.getElementById('stock-add-'+id),dEl=document.getElementById('stock-date-'+id);
+  var qty=Math.max(0,cleanNum(qEl?qEl.value:0));
+  if(!qty){alert('Indiquez une quantite entree');return;}
+  var d=articleInputDate(dEl?dEl.value:today());
+  if(!Array.isArray(b.stockEntries))b.stockEntries=[];
+  b.stockEntries.unshift({date:d,qty:qty});
+  b.stock=stockArticle(b)+qty;
+  saveSharedConfig();renderBoissons();
+}
 function updArticleStockable(id,on){
   for(var i=0;i<B.length;i++) if(B[i].id===id){B[i].stockable=!!on;if(!on)B[i].stock=0;break;}
   saveSharedConfig();renderBoissons();
 }
-function ajustS(id,d){for(var i=0;i<B.length;i++) if(B[i].id===id){if(!articleAvecStock(B[i]))return;B[i].stock=Math.max(0,stockArticle(B[i])+d);break;}saveSharedConfig();renderBoissons();}
+function ajustS(id,d){for(var i=0;i<B.length;i++) if(B[i].id===id){if(!articleAvecStock(B[i]))return;var before=stockArticle(B[i]);B[i].stock=Math.max(0,before+d);if(d>0&&B[i].stock>before){if(!Array.isArray(B[i].stockEntries))B[i].stockEntries=[];B[i].stockEntries.unshift({date:today(),qty:B[i].stock-before});}break;}saveSharedConfig();renderBoissons();}
+function updArticleNom(id,v){v=(v||'').trim();if(!v){alert('Le nom ne peut pas etre vide');renderBoissons();return;}for(var i=0;i<B.length;i++) if(B[i].id===id){B[i].nom=v;break;}saveSharedConfig();renderBoissons();}
+function updArticleAchat(id,v){for(var i=0;i<B.length;i++) if(B[i].id===id){B[i].pa=parseInt(v)||0;break;}saveSharedConfig();renderBoissons();}
+function updArticleAchat2(id,v){for(var i=0;i<B.length;i++) if(B[i].id===id){B[i].pa2=parseInt(v)||0;break;}saveSharedConfig();renderBoissons();}
+function updArticleAchatMode(id,v){for(var i=0;i<B.length;i++) if(B[i].id===id){B[i].paMode=(v==='pa2')?'pa2':'pa';break;}saveSharedConfig();renderBoissons();renderArticleAnalytics();}
 function updArticlePrix(id,v){for(var i=0;i<B.length;i++) if(B[i].id===id){B[i].pv=parseInt(v)||0;break;}saveSharedConfig();renderBoissons();}
+function updArticleSeuil(id,v){for(var i=0;i<B.length;i++) if(B[i].id===id){B[i].seuil=Math.max(0,parseInt(v)||0);break;}saveSharedConfig();renderBoissons();}
 function ajouterBoisson(){
   var nom=document.getElementById('nb-nom').value.trim();if(!nom){alert('Entrez un nom');return;}
   var mx=0;for(var i=0;i<B.length;i++) if(B[i].id>mx) mx=B[i].id;
   var avecStock=document.getElementById('nb-stockable').checked;
-  B.push({id:mx+1,nom:nom,stock:avecStock?(parseInt(document.getElementById('nb-stock').value)||0):0,stockable:avecStock,pa:parseInt(document.getElementById('nb-achat').value)||0,pv:parseInt(document.getElementById('nb-vente').value)||0});
+  var st=avecStock?(parseInt(document.getElementById('nb-stock').value)||0):0;
+  B.push({id:mx+1,nom:nom,stock:st,stockable:avecStock,stockEntries:(avecStock&&st>0)?[{date:today(),qty:st}]:[],pa:parseInt(document.getElementById('nb-achat').value)||0,pa2:0,paMode:'pa',pv:parseInt(document.getElementById('nb-vente').value)||0});
   saveSharedConfig();document.getElementById('nb-nom').value='';renderBoissons();
 }
 function supprimerBoisson(id){
@@ -1586,7 +1760,7 @@ function articleAnalyticsRows(forceAll){
   for(var i=0;i<VB.length;i++){
     var v=normalizeArticleSale(VB[i]);
     if(!(r&&r.all)&&!articleInRange(v,r))continue;
-    var name=v.nom||'--',qty=cleanNum(v.qty),amount=cleanNum(v.montant),cat=articleCatalogByName(name),pa=cat?cleanNum(cat.pa):0,cost=pa*qty,margin=amount-cost;
+    var name=v.nom||'--',qty=cleanNum(v.qty),amount=cleanNum(v.montant),cat=articleCatalogByName(name),pa=cat?articlePrixAchat(cat):0,cost=pa*qty,margin=amount-cost;
     if(!map[name])map[name]={nom:name,qty:0,lignes:0,ca:0,cout:0,marge:0,stock:cat?(articleAvecStock(cat)?stockArticle(cat):'Sans stock'):''};
     map[name].qty+=qty;map[name].lignes++;map[name].ca+=amount;map[name].cout+=cost;map[name].marge+=margin;if(cat)map[name].stock=articleAvecStock(cat)?stockArticle(cat):'Sans stock';
     var d=articleDisplayDate(v.date);if(!days[d])days[d]=[];days[d].push({nom:name,qty:qty,prix:v.prix||0,montant:amount,marge:margin,vendeur:v.vendeur||''});
