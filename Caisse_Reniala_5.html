@@ -1521,7 +1521,7 @@ function renderStockManagement(){
   var el=document.getElementById('stock-management');if(!el)return;
   var rows=articleStockRows();
   if(!rows.length){el.innerHTML='<div class="empty">Aucun article avec stock</div>';return;}
-  var h='<table><thead><tr><th>Article</th><th class="num">Stock actuel</th><th class="num">Quantite entree</th><th>Date entree</th><th class="num">Seuil</th><th class="num">Sorties</th><th>Historique entrees</th><th>Statut</th><th>Action</th></tr></thead><tbody>';
+  var h='<table><thead><tr><th>Article</th><th class="num">Stock actuel</th><th class="num">Quantite entree</th><th>Date entree</th><th class="num">Seuil</th><th class="num">Sorties</th><th>Statut</th><th>Action</th></tr></thead><tbody>';
   for(var i=0;i<rows.length;i++){
     var r=rows[i],alert=r.stock<=r.seuil;
     h+='<tr>'+
@@ -1531,7 +1531,6 @@ function renderStockManagement(){
       '<td><input type="date" id="stock-date-'+r.id+'" value="'+today()+'" style="border:1px solid #ccc;border-radius:4px;padding:6px 8px"/></td>'+
       '<td class="num soft"><input type="number" min="0" value="'+r.seuil+'" onchange="updArticleSeuil('+r.id+',this.value)" style="width:70px;text-align:right;border:1px solid #ccc;border-radius:4px;padding:6px 8px"/></td>'+
       '<td class="num stock-click-cell">'+articleSalesDetails(r.sales,'Aucune vente datee')+'</td>'+
-      '<td class="stock-click-cell">'+articleEntriesDetails(r.id,r.entries)+'</td>'+
       '<td class="'+(alert?'stock-alert':'stock-ok')+'">'+(alert?'&#9888; A commander':'&#9989; OK')+'</td>'+
       '<td><button class="btn1" onclick="ajouterStockArticle('+r.id+')" style="padding:7px 12px;font-size:12px">+ Ajouter au stock</button></td>'+
     '</tr>';
