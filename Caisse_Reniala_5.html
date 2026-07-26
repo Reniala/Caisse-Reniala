@@ -685,7 +685,19 @@ var PRINTER_PAPER_MM=80;
 var PRINTER_PRINT_MM=74;
 
 function fmt(n){return Math.round(n).toLocaleString('fr-FR')+' Ar';}
-function today(){return new Date().toISOString().split('T')[0];}
+var RN_TIME_ZONE='Indian/Antananarivo';
+function rnPad(n){return String(n).padStart(2,'0');}
+function rnDateStringInZone(d){
+  d=d||new Date();
+  try{
+    var parts=new Intl.DateTimeFormat('fr-CA',{timeZone:RN_TIME_ZONE,year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(d);
+    var out={};
+    for(var i=0;i<parts.length;i++)out[parts[i].type]=parts[i].value;
+    if(out.year&&out.month&&out.day)return out.year+'-'+out.month+'-'+out.day;
+  }catch(e){}
+  return d.getFullYear()+'-'+rnPad(d.getMonth()+1)+'-'+rnPad(d.getDate());
+}
+function today(){return rnDateStringInZone(new Date());}
 function mkey(d){return articleDateOnly(d).substring(0,7);}
 function mlbl(k){var p=k.split('-');return ['Jan','Fev','Mar','Avr','Mai','Jun','Jul','Aou','Sep','Oct','Nov','Dec'][parseInt(p[1])-1]+' '+p[0];}
 
@@ -1721,6 +1733,7 @@ function articleDateOnly(d){
     return articleIso(new Date(y,months[en[1].toLowerCase()],parseInt(en[2],10)));
   }
   if(s.indexOf('T')>0){
+    if(/^\d{4}-\d{2}-\d{2}T/.test(s))return s.substring(0,10);
     var dt=new Date(s);
     if(!isNaN(dt.getTime())){
       dt=new Date(dt.getTime()+12*60*60*1000);
@@ -1747,10 +1760,10 @@ function articleDisplayDate(d){
   var s=articleDateOnly(d);
   return /^\d{4}-\d{2}-\d{2}$/.test(s)?s:(d||'Date non reconnue');
 }
-function articleIso(d){return d.toISOString().split('T')[0];}
+function articleIso(d){return d.getFullYear()+'-'+rnPad(d.getMonth()+1)+'-'+rnPad(d.getDate());}
 function articleStartOfWeek(d){var x=new Date(d.getFullYear(),d.getMonth(),d.getDate());var day=x.getDay()||7;x.setDate(x.getDate()-day+1);return x;}
 function articlePeriodRange(){
-  var sel=document.getElementById('ba-period'),p=sel?sel.value:'month',now=new Date(),start,end;
+  var sel=document.getElementById('ba-period'),p=sel?sel.value:'month',now=articleDateObj(today()),start,end;
   if(p==='all'){start=new Date(1900,0,1);end=new Date(2100,11,31);}
   else if(p==='today'){start=new Date(now.getFullYear(),now.getMonth(),now.getDate());end=new Date(start);}
   else if(p==='week'){start=articleStartOfWeek(now);end=new Date(start);end.setDate(start.getDate()+6);}
@@ -1854,13 +1867,13 @@ function initRap(){
   var years={};
   for(var i=0;i<VE.length;i++) years[VE[i].date.substring(0,4)]=1;
   for(var i=0;i<VB.length;i++) years[articleDateOnly(VB[i].date).substring(0,4)]=1;
-  years[new Date().getFullYear().toString()]=1;
+  years[today().substring(0,4)]=1;
   var ks=Object.keys(years).sort().reverse();
   var sel=document.getElementById('fa');sel.innerHTML='';
   for(var i=0;i<ks.length;i++) sel.innerHTML+='<option value="'+ks[i]+'">'+ks[i]+'</option>';
 }
 function rapPeriodRange(){
-  var sel=document.getElementById('rj-period'),p=sel?sel.value:'today',now=new Date(),start,end;
+  var sel=document.getElementById('rj-period'),p=sel?sel.value:'today',now=articleDateObj(today()),start,end;
   if(p==='all'){start=new Date(1900,0,1);end=new Date(2100,11,31);}
   else if(p==='week'){start=articleStartOfWeek(now);end=new Date(start);end.setDate(start.getDate()+6);}
   else if(p==='month'){start=new Date(now.getFullYear(),now.getMonth(),1);end=new Date(now.getFullYear(),now.getMonth()+1,0);}
