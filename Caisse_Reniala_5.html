@@ -614,10 +614,12 @@ function applyConfigFromApi(data){
   if(data.boissons) cfg.boissons=data.boissons;
   if(data.guides) cfg.guides=data.guides;
   if(data.params) cfg.params=data.params;
+  if(data.cashControls) cfg.cashControls=data.cashControls;
   if(cfg.tarifs){T=cfg.tarifs;normalizeTarifs();sv('tarifs',T);_configLoaded=true;}
   if(cfg.boissons){B=cfg.boissons;sv('boissons',B);_configLoaded=true;}
   if(cfg.guides){G=cfg.guides;sv('guides',G);_configLoaded=true;}
   if(cfg.params){P=cfg.params;sv('params',P);_configLoaded=true;}
+  if(cfg.cashControls){sv('cashControls',cfg.cashControls);_configLoaded=true;}
   fixCocaStockOnce();
 }
 function fixCocaStockOnce(){
@@ -640,7 +642,7 @@ function fixCocaStockOnce(){
 }
 function configPayload(){
   normalizeTarifs();
-  return {tarifs:T,boissons:B,guides:G,params:P};
+  return {tarifs:T,boissons:B,guides:G,params:P,cashControls:cashControls()};
 }
 function saveSharedConfig(callback){
   sv('tarifs',T);sv('boissons',B);sv('guides',G);sv('params',P);
@@ -1909,9 +1911,14 @@ function saveCashControl(){
   var r=rapPeriodRange(),all=cashControls(),k=cashControlKey(r);
   all[k]={
     fond:cleanNum(document.getElementById('fond-caisse')&&document.getElementById('fond-caisse').value),
-    compte:cleanNum(document.getElementById('caisse-comptee')&&document.getElementById('caisse-comptee').value)
+    compte:cleanNum(document.getElementById('caisse-comptee')&&document.getElementById('caisse-comptee').value),
+    modifiePar:currentSellerName(),
+    modifieLe:new Date().toISOString()
   };
   sv('cashControls',all);
+  apiPost('saveConfig',configPayload(),function(res){
+    if(res&&res.ok)applyConfigFromApi(res);
+  });
 }
 function cashControlSummary(r,recettes){
   var c=getCashControl(r),fond=cleanNum(c.fond),compte=cleanNum(c.compte),attendu=fond+recettes,ecart=compte-attendu;
