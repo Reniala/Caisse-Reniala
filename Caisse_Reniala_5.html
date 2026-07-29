@@ -499,9 +499,9 @@ var DEF_TARIFS=[
 ];
 var DEF_BOISSONS=[
   {id:1,nom:'Eau 50cl',stock:48,pa:500,pv:1500},
-  {id:2,nom:'Coca-Cola 33cl',stock:7,pa:1200,pv:3000},
+  {id:2,nom:'Coca-Cola 33cl',stock:31,pa:1200,pv:3000},
   {id:3,nom:'Fanta 33cl',stock:24,pa:1200,pv:3000},
-  {id:4,nom:'Biere THB',stock:36,pa:2000,pv:5000},
+  {id:4,nom:'Biere THB',stock:6,pa:2000,pv:5000},
   {id:5,nom:'Jus 25cl',stock:20,pa:800,pv:2500},
   {id:6,nom:'Eau 1,5L',stock:18,pa:1000,pv:3000},
   {id:7,nom:'Rhum arrange',stock:12,pa:3000,pv:8000},
@@ -620,22 +620,34 @@ function applyConfigFromApi(data){
   if(cfg.guides){G=cfg.guides;sv('guides',G);_configLoaded=true;}
   if(cfg.params){P=cfg.params;sv('params',P);_configLoaded=true;}
   if(cfg.cashControls){sv('cashControls',cfg.cashControls);_configLoaded=true;}
-  fixCocaStockOnce();
+  fixStockCorrectionsOnce();
 }
-function fixCocaStockOnce(){
-  if(ld('fixCocaStock7Done',false))return;
+function fixStockCorrectionsOnce(){
+  if(ld('fixStocks20260729Coca31Done',false))return;
   var changed=false;
   for(var i=0;i<B.length;i++){
     var n=(B[i].nom||'').toLowerCase();
     try{n=n.normalize('NFD').replace(/[\u0300-\u036f]/g,'');}catch(e){}
     if(n.indexOf('coca')>=0){
-      B[i].stock=7;
+      B[i].stock=31;
+      if(!Array.isArray(B[i].stockEntries))B[i].stockEntries=[];
+      changed=true;
+    }else if(n.indexOf('fresh')>=0){
+      B[i].stock=29;
+      if(!Array.isArray(B[i].stockEntries))B[i].stockEntries=[];
+      changed=true;
+    }else if(n.indexOf('biere')>=0||n.indexOf('thb')>=0){
+      B[i].stock=6;
+      if(!Array.isArray(B[i].stockEntries))B[i].stockEntries=[];
+      changed=true;
+    }else if(n.indexOf('eau')>=0&&n.indexOf('cristalline')>=0&&(n.indexOf('1l')>=0||n.indexOf('1 l')>=0)){
+      B[i].stock=13;
       if(!Array.isArray(B[i].stockEntries))B[i].stockEntries=[];
       changed=true;
     }
   }
   if(changed){
-    sv('fixCocaStock7Done',true);
+    sv('fixStocks20260729Coca31Done',true);
     sv('boissons',B);
     apiPost('saveConfig',configPayload(),function(){});
   }
