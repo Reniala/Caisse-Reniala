@@ -329,40 +329,46 @@ body:not(.locked) #caisse-lock{display:none!important}
 
 <!-- ARTICLES -->
 <div id="sec-boissons" class="sec">
-  <div class="sbar" id="bois-sum"></div>
-  <div class="stitle">Ajouter un article au catalogue</div>
-  <div class="bois-add-form">
-    <div class="fg"><label>Nom</label><input type="text" id="nb-nom" placeholder="ex: Menu complet, cafe, diner..."/></div>
-    <div class="fg"><label>Stock initial</label><input type="number" id="nb-stock" value="12" min="0"/></div>
-    <div class="fg"><label>Prix achat (Ar)</label><input type="number" id="nb-achat" placeholder="1500"/></div>
-    <div class="fg"><label>Prix vente (Ar)</label><input type="number" id="nb-vente" placeholder="4000"/></div>
-    <label class="btn2" style="align-self:flex-end;display:flex;gap:6px;align-items:center"><input type="checkbox" id="nb-stockable" checked/> Avec stock</label>
-    <button class="btn1" onclick="ajouterBoisson()" style="align-self:flex-end">+ Ajouter</button>
+  <div id="articles-vendeur-msg" class="param-section" style="display:none">
+    <div class="param-title">Articles</div>
+    <div style="font-size:13px;color:#555">La vente des articles se fait depuis l'onglet Caisse. La gestion du catalogue, des ventes articles et du stock est reservee aux responsables.</div>
   </div>
-  <div class="stitle">&#128203; Catalogue articles</div>
-  <div class="stock-follow" id="article-catalogue"></div>
-  <div class="stitle">&#128230; Gestion du stock</div>
-  <div class="stock-follow" id="stock-management"></div>
-  <div class="stitle">&#128202; Analyse ventes articles</div>
-  <div class="rfilter">
-    <label>Periode</label>
-    <select id="ba-period" onchange="onArticlePeriodChange()">
-      <option value="all" selected>Toutes les ventes</option>
-      <option value="today">Aujourd'hui</option>
-      <option value="week">Cette semaine</option>
-      <option value="month">Ce mois</option>
-      <option value="year">Cette annee</option>
-      <option value="custom">Personnalisee</option>
-    </select>
-    <input type="date" id="ba-start" onchange="renderArticleAnalytics()" style="display:none"/>
-    <input type="date" id="ba-end" onchange="renderArticleAnalytics()" style="display:none"/>
-    <button class="btn2" onclick="renderArticleAnalytics()">Actualiser</button>
-    <button class="btn1" onclick="printArticleAnalytics()">Imprimer rapport</button>
-    <button class="btn2" onclick="exportArticleAnalyticsCsv()">Exporter CSV</button>
+  <div id="articles-responsable-zone">
+    <div class="sbar" id="bois-sum"></div>
+    <div class="stitle">Ajouter un article au catalogue</div>
+    <div class="bois-add-form">
+      <div class="fg"><label>Nom</label><input type="text" id="nb-nom" placeholder="ex: Menu complet, cafe, diner..."/></div>
+      <div class="fg"><label>Stock initial</label><input type="number" id="nb-stock" value="12" min="0"/></div>
+      <div class="fg"><label>Prix achat (Ar)</label><input type="number" id="nb-achat" placeholder="1500"/></div>
+      <div class="fg"><label>Prix vente (Ar)</label><input type="number" id="nb-vente" placeholder="4000"/></div>
+      <label class="btn2" style="align-self:flex-end;display:flex;gap:6px;align-items:center"><input type="checkbox" id="nb-stockable" checked/> Avec stock</label>
+      <button class="btn1" onclick="ajouterBoisson()" style="align-self:flex-end">+ Ajouter</button>
+    </div>
+    <div class="stitle">&#128203; Catalogue articles</div>
+    <div class="stock-follow" id="article-catalogue"></div>
+    <div class="stitle">&#128230; Gestion du stock</div>
+    <div class="stock-follow" id="stock-management"></div>
+    <div class="stitle">&#128202; Analyse ventes articles</div>
+    <div class="rfilter">
+      <label>Periode</label>
+      <select id="ba-period" onchange="onArticlePeriodChange()">
+        <option value="all" selected>Toutes les ventes</option>
+        <option value="today">Aujourd'hui</option>
+        <option value="week">Cette semaine</option>
+        <option value="month">Ce mois</option>
+        <option value="year">Cette annee</option>
+        <option value="custom">Personnalisee</option>
+      </select>
+      <input type="date" id="ba-start" onchange="renderArticleAnalytics()" style="display:none"/>
+      <input type="date" id="ba-end" onchange="renderArticleAnalytics()" style="display:none"/>
+      <button class="btn2" onclick="renderArticleAnalytics()">Actualiser</button>
+      <button class="btn1" onclick="printArticleAnalytics()">Imprimer rapport</button>
+      <button class="btn2" onclick="exportArticleAnalyticsCsv()">Exporter CSV</button>
+    </div>
+    <div id="article-analysis"></div>
+    <div class="stitle">&#128203; Historique ventes articles par date</div>
+    <div id="bois-log"><div class="empty">Aucune vente enregistree</div></div>
   </div>
-  <div id="article-analysis"></div>
-  <div class="stitle">&#128203; Historique ventes articles par date</div>
-  <div id="bois-log"><div class="empty">Aucune vente enregistree</div></div>
 </div>
 
 <!-- RAPPORTS -->
@@ -464,6 +470,11 @@ body:not(.locked) #caisse-lock{display:none!important}
       <div><div>Taux chauffeur-guide (%)</div><div style="font-size:11px;color:#888">Personne differente du guide accompagnateur</div></div>
       <input type="number" id="pct-chauf-input" min="0" max="100" step="0.5" onchange="saveParams()"/>
     </div>
+  </div>
+  <div class="param-section">
+    <div class="param-title">Correction stock articles</div>
+    <div style="font-size:11px;color:#888;margin-bottom:10px">Reserve aux responsables : permet de remettre le stock reel apres inventaire, sans afficher ces valeurs aux vendeurs.</div>
+    <div class="stock-follow" id="param-stock-correction"></div>
   </div>
   <div class="param-section">
     <div class="param-title">Commissions guide par prestation</div>
@@ -633,9 +644,9 @@ function applyConfigFromApi(data){
   if(cfg.guides){G=cfg.guides;sv('guides',G);_configLoaded=true;}
   if(cfg.params){P=cfg.params;sv('params',P);_configLoaded=true;}
   if(cfg.cashControls){sv('cashControls',cfg.cashControls);_configLoaded=true;}
-  fixStockCorrectionsOnce();
 }
 function fixStockCorrectionsOnce(){
+  return;
   if(ld('fixStocks20260729Coca31Done',false))return;
   var changed=false;
   for(var i=0;i<B.length;i++){
@@ -683,6 +694,12 @@ function saveSharedConfig(callback){
     var msg=(res&&res.error)?res.error:'reponse invalide du serveur';
     showApiError('Parametres non sauvegardes : '+msg);
     if(callback)callback(false);
+  });
+}
+function saveStockConfigSilent(){
+  sv('boissons',B);
+  apiPost('saveConfig',configPayload(),function(res){
+    if(res&&res.ok) applyConfigFromApi(res);
   });
 }
 function esc(s){
@@ -742,11 +759,26 @@ function findCaisseUser(code){
 function currentSellerName(){
   return currentUser?currentUser.nom:'';
 }
+function isResponsible(){
+  return currentUser&&currentUser.role==='responsable';
+}
+function updateRoleVisibility(){
+  var rz=document.getElementById('articles-responsable-zone');
+  var vm=document.getElementById('articles-vendeur-msg');
+  if(rz)rz.style.display='';
+  if(vm)vm.style.display='none';
+  var add=document.querySelector('#sec-boissons .bois-add-form');
+  if(add){
+    var fields=add.querySelectorAll('input,button');
+    for(var i=0;i<fields.length;i++) fields[i].disabled=!isResponsible();
+  }
+}
 function updateSessionUser(){
   var el=document.getElementById('session-user');
   if(!el)return;
   if(!currentUser){el.textContent='';return;}
   el.textContent=(currentUser.role==='responsable'?'Responsable: ':'Vendeur: ')+currentUser.nom;
+  updateRoleVisibility();
 }
 function saveCaisseSession(user){
   try{
@@ -800,6 +832,7 @@ function fermerCaisse(){
   currentUser=null;
   clearCaisseSession();
   updateSessionUser();
+  updateRoleVisibility();
   hideParamLock();
   document.body.classList.add('locked');
   var secs=document.querySelectorAll('.sec');
@@ -1139,6 +1172,7 @@ function validerVente(){
 
   function afterArticles(resA){
     if(resA&&!resA.ok) console.warn('Erreur articles:',resA.error);
+    if(lignesArticles.length&&resA&&resA.ok) saveStockConfigSilent();
     if(btnValider){btnValider.disabled=false;btnValider.innerHTML='&#10003; Valider &amp; imprimer les tickets';}
   }
 
@@ -1463,6 +1497,7 @@ function renderBoissons(){
   var tot=0,ca=0;
   for(var i=0;i<B.length;i++) if(articleAvecStock(B[i])) tot+=stockArticle(B[i]);
   for(var i=0;i<VB.length;i++) ca+=VB[i].montant;
+  updateRoleVisibility();
   document.getElementById('bois-sum').innerHTML=
     '<div class="met"><div class="mval">'+tot+'</div><div class="mlbl">unites en stock</div></div>'+
     '<div class="met"><div class="mval">'+VB.length+'</div><div class="mlbl">ventes articles</div></div>'+
@@ -1476,8 +1511,8 @@ function remplirSelectBoisson(selId){
   var sel=document.getElementById(selId);if(!sel)return;
   sel.innerHTML='';
   for(var i=0;i<B.length;i++){
-    var label=articleAvecStock(B[i])?'stock '+stockArticle(B[i]):'sans stock';
-    sel.innerHTML+='<option value="'+B[i].id+'">'+B[i].nom+' ('+fmt(B[i].pv)+') - '+label+'</option>';
+    var label=articleAvecStock(B[i])?' - stock '+stockArticle(B[i]):' - sans stock';
+    sel.innerHTML+='<option value="'+B[i].id+'">'+B[i].nom+' ('+fmt(B[i].pv)+')'+label+'</option>';
   }
 }
 function getBoisson(id){for(var i=0;i<B.length;i++) if(B[i].id===id)return B[i];return null;}
@@ -1593,19 +1628,20 @@ function renderArticleStockFollow(){
 function renderArticleCatalogue(){
   var el=document.getElementById('article-catalogue');if(!el)return;
   if(!B.length){el.innerHTML='<div class="empty">Aucun article au catalogue</div>';return;}
+  var resp=isResponsible();
   var h='<table><thead><tr><th>Article</th><th>Type</th><th class="num">Prix achat 1</th><th class="num">Prix achat 2</th><th>Prix utilise</th><th class="num">Prix vente</th><th class="num">Stock</th><th>Action</th></tr></thead><tbody>';
   for(var i=0;i<B.length;i++){
     var b=B[i],avecStock=articleAvecStock(b),stock=avecStock?stockArticle(b):0;
     var mode=b.paMode==='pa2'?'pa2':'pa';
     h+='<tr>'+
-      '<td><input type="text" value="'+esc(b.nom)+'" onchange="updArticleNom('+b.id+',this.value)" style="width:100%;border:1px solid #ccc;border-radius:4px;padding:6px 8px"/></td>'+
+      '<td>'+(resp?'<input type="text" value="'+esc(b.nom)+'" onchange="updArticleNom('+b.id+',this.value)" style="width:100%;border:1px solid #ccc;border-radius:4px;padding:6px 8px"/>':esc(b.nom))+'</td>'+
       '<td>'+(avecStock?'<span class="stock-ok">Avec stock</span>':'<span style="color:#777;font-weight:bold">Sans stock</span>')+'</td>'+
-      '<td class="num"><input type="number" value="'+(b.pa||0)+'" onchange="updArticleAchat('+b.id+',this.value)" style="width:95px;text-align:right;border:1px solid #ccc;border-radius:4px;padding:6px 8px"/></td>'+
-      '<td class="num"><input type="number" value="'+(b.pa2||0)+'" onchange="updArticleAchat2('+b.id+',this.value)" style="width:95px;text-align:right;border:1px solid #ccc;border-radius:4px;padding:6px 8px"/></td>'+
-      '<td><select onchange="updArticleAchatMode('+b.id+',this.value)" style="border:1px solid #ccc;border-radius:4px;padding:6px 8px;background:#fff"><option value="pa" '+(mode==='pa'?'selected':'')+'>Prix 1</option><option value="pa2" '+(mode==='pa2'?'selected':'')+'>Prix 2</option></select></td>'+
-      '<td class="num"><input type="number" value="'+(b.pv||0)+'" onchange="updArticlePrix('+b.id+',this.value)" style="width:95px;text-align:right;border:1px solid #ccc;border-radius:4px;padding:6px 8px"/></td>'+
+      '<td class="num">'+(resp?'<input type="number" value="'+(b.pa||0)+'" onchange="updArticleAchat('+b.id+',this.value)" style="width:95px;text-align:right;border:1px solid #ccc;border-radius:4px;padding:6px 8px"/>':fmt(b.pa||0))+'</td>'+
+      '<td class="num">'+(resp?'<input type="number" value="'+(b.pa2||0)+'" onchange="updArticleAchat2('+b.id+',this.value)" style="width:95px;text-align:right;border:1px solid #ccc;border-radius:4px;padding:6px 8px"/>':fmt(b.pa2||0))+'</td>'+
+      '<td>'+(resp?'<select onchange="updArticleAchatMode('+b.id+',this.value)" style="border:1px solid #ccc;border-radius:4px;padding:6px 8px;background:#fff"><option value="pa" '+(mode==='pa'?'selected':'')+'>Prix 1</option><option value="pa2" '+(mode==='pa2'?'selected':'')+'>Prix 2</option></select>':(mode==='pa2'?'Prix 2':'Prix 1'))+'</td>'+
+      '<td class="num">'+(resp?'<input type="number" value="'+(b.pv||0)+'" onchange="updArticlePrix('+b.id+',this.value)" style="width:95px;text-align:right;border:1px solid #ccc;border-radius:4px;padding:6px 8px"/>':fmt(b.pv||0))+'</td>'+
       '<td class="num">'+(avecStock?stock:'-')+'</td>'+
-      '<td><button class="btn2" onclick="supprimerBoisson('+b.id+')" style="padding:6px 10px;font-size:12px">&#128465; Supprimer</button></td>'+
+      '<td>'+(resp?'<button class="btn2" onclick="supprimerBoisson('+b.id+')" style="padding:6px 10px;font-size:12px">&#128465; Supprimer</button>':'--')+'</td>'+
     '</tr>';
   }
   h+='</tbody></table>';
@@ -1615,22 +1651,55 @@ function renderStockManagement(){
   var el=document.getElementById('stock-management');if(!el)return;
   var rows=articleStockRows();
   if(!rows.length){el.innerHTML='<div class="empty">Aucun article avec stock</div>';return;}
-  var h='<table><thead><tr><th>Article</th><th class="num">Stock actuel</th><th class="num">Quantite entree</th><th>Date entree</th><th class="num">Seuil</th><th class="num">Sorties</th><th>Statut</th><th>Action</th></tr></thead><tbody>';
+  var resp=isResponsible();
+  var h='<table><thead><tr><th>Article</th><th class="num">Stock actuel</th>'+(resp?'<th class="num">Quantite entree</th><th>Date entree</th><th class="num">Seuil</th>':'<th class="num">Seuil</th>')+'<th class="num">Sorties</th><th>Statut</th>'+(resp?'<th>Action</th>':'')+'</tr></thead><tbody>';
+  for(var i=0;i<rows.length;i++){
+    var r=rows[i],alert=r.stock<=r.seuil;
+    h+='<tr>'+
+      '<td>'+esc(r.nom)+'</td>'+
+      '<td class="num"><strong>'+r.stock+'</strong></td>';
+    if(resp){
+      h+='<td class="num"><input type="number" min="1" id="stock-add-'+r.id+'" placeholder="0" style="width:80px;text-align:right;border:1px solid #ccc;border-radius:4px;padding:6px 8px"/></td>'+
+        '<td><input type="date" id="stock-date-'+r.id+'" value="'+today()+'" style="border:1px solid #ccc;border-radius:4px;padding:6px 8px"/></td>'+
+        '<td class="num soft"><input type="number" min="0" value="'+r.seuil+'" onchange="updArticleSeuil('+r.id+',this.value)" style="width:70px;text-align:right;border:1px solid #ccc;border-radius:4px;padding:6px 8px"/></td>';
+    }else{
+      h+='<td class="num soft">'+r.seuil+'</td>';
+    }
+    h+=
+      '<td class="num stock-click-cell">'+articleSalesDetails(r.sales,'Aucune vente datee')+'</td>'+
+      '<td class="'+(alert?'stock-alert':'stock-ok')+'">'+(alert?'&#9888; A commander':'&#9989; OK')+'</td>'+
+      (resp?'<td><button class="btn1" onclick="ajouterStockArticle('+r.id+')" style="padding:7px 12px;font-size:12px">+ Ajouter au stock</button></td>':'')+
+    '</tr>';
+  }
+  h+='</tbody></table>';
+  el.innerHTML=h;
+}
+function renderParamStockCorrection(){
+  var el=document.getElementById('param-stock-correction');if(!el)return;
+  var rows=articleStockRows();
+  if(!rows.length){el.innerHTML='<div class="empty">Aucun article avec stock</div>';return;}
+  var h='<table><thead><tr><th>Article</th><th class="num">Stock actuel</th><th class="num">Stock reel</th><th class="num">Sorties</th><th>Statut</th><th>Action</th></tr></thead><tbody>';
   for(var i=0;i<rows.length;i++){
     var r=rows[i],alert=r.stock<=r.seuil;
     h+='<tr>'+
       '<td>'+esc(r.nom)+'</td>'+
       '<td class="num"><strong>'+r.stock+'</strong></td>'+
-      '<td class="num"><input type="number" min="1" id="stock-add-'+r.id+'" placeholder="0" style="width:80px;text-align:right;border:1px solid #ccc;border-radius:4px;padding:6px 8px"/></td>'+
-      '<td><input type="date" id="stock-date-'+r.id+'" value="'+today()+'" style="border:1px solid #ccc;border-radius:4px;padding:6px 8px"/></td>'+
-      '<td class="num soft"><input type="number" min="0" value="'+r.seuil+'" onchange="updArticleSeuil('+r.id+',this.value)" style="width:70px;text-align:right;border:1px solid #ccc;border-radius:4px;padding:6px 8px"/></td>'+
+      '<td class="num"><input type="number" min="0" id="stock-real-'+r.id+'" value="'+r.stock+'" style="width:90px;text-align:right;border:1px solid #ccc;border-radius:4px;padding:6px 8px"/></td>'+
       '<td class="num stock-click-cell">'+articleSalesDetails(r.sales,'Aucune vente datee')+'</td>'+
       '<td class="'+(alert?'stock-alert':'stock-ok')+'">'+(alert?'&#9888; A commander':'&#9989; OK')+'</td>'+
-      '<td><button class="btn1" onclick="ajouterStockArticle('+r.id+')" style="padding:7px 12px;font-size:12px">+ Ajouter au stock</button></td>'+
+      '<td><button class="btn1" onclick="corrigerStockArticle('+r.id+')" style="padding:7px 12px;font-size:12px">Corriger</button></td>'+
     '</tr>';
   }
   h+='</tbody></table>';
   el.innerHTML=h;
+}
+function corrigerStockArticle(id){
+  var b=getBoisson(id);if(!b||!articleAvecStock(b))return;
+  var el=document.getElementById('stock-real-'+id);
+  var val=Math.max(0,cleanNum(el?el.value:0));
+  if(!confirm('Confirmer le stock reel de '+b.nom+' a '+val+' unite(s) ?'))return;
+  b.stock=val;
+  saveSharedConfig(function(){renderBoissons();renderParamStockCorrection();});
 }
 function updArticleStockEntry(articleId,index,field,value){
   var b=getBoisson(articleId);if(!b)return;
@@ -1691,8 +1760,10 @@ function enregistrerVenteBoisson(id,qty,prix){
   if(articleAvecStock(b)&&stockArticle(b)<qty){alert('Stock insuffisant!');return false;}
   if(articleAvecStock(b))b.stock=stockArticle(b)-qty;
   else b.stock=0;
-  VB.unshift({date:today(),nom:b.nom,qty:qty,prix:prix,montant:prix*qty});
+  var sale={date:today(),num:'ART-'+Date.now(),nom:b.nom,qty:qty,prix:prix,montant:prix*qty,vendeur:currentSellerName()};
+  VB.unshift(sale);
   sv('boissons',B);sv('ventesBoissons',VB);renderBoissons();
+  apiPost('addVentesArticles',[sale],function(res){if(res&&res.ok)saveStockConfigSilent();});
   return true;
 }
 function vendreBoisson(){
@@ -2354,6 +2425,7 @@ function renderParams(){
   }
   document.getElementById('comm-list').innerHTML=h;
   renderGuides();renderTarifsList();
+  renderParamStockCorrection();
   var rc=document.getElementById('reset-counts');if(rc)rc.textContent=VE.length+' ventes entrees et '+VB.length+' ventes articles enregistrees.';
 }
 function updCG(i,v){T[i].commGuide=parseInt(v)||0;saveSharedConfig();renderTarifs();}
