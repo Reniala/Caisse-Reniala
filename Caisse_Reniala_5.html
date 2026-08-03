@@ -1699,7 +1699,18 @@ function corrigerStockArticle(id){
   var val=Math.max(0,cleanNum(el?el.value:0));
   if(!confirm('Confirmer le stock reel de '+b.nom+' a '+val+' unite(s) ?'))return;
   b.stock=val;
-  saveSharedConfig(function(){renderBoissons();renderParamStockCorrection();});
+  sv('boissons',B);
+  renderBoissons();
+  renderParamStockCorrection();
+  showLoading('Sauvegarde du stock corrige...');
+  apiPost('saveConfig',configPayload(),function(res){
+    hideLoading();
+    if(res&&res.ok){
+      showNotice('Stock corrige pour '+b.nom+' : '+val+' unite(s).');
+    }else{
+      showApiError('Stock corrige localement, mais non sauvegarde sur le serveur : '+((res&&res.error)?res.error:'reponse invalide'));
+    }
+  });
 }
 function updArticleStockEntry(articleId,index,field,value){
   var b=getBoisson(articleId);if(!b)return;
