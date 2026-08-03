@@ -640,10 +640,18 @@ function applyConfigFromApi(data){
   if(data.params) cfg.params=data.params;
   if(data.cashControls) cfg.cashControls=data.cashControls;
   if(cfg.tarifs){T=cfg.tarifs;normalizeTarifs();sv('tarifs',T);_configLoaded=true;}
-  if(cfg.boissons){B=cfg.boissons;sv('boissons',B);_configLoaded=true;}
+  if(cfg.boissons){B=cfg.boissons;normalizeStockBases();sv('boissons',B);_configLoaded=true;}
   if(cfg.guides){G=cfg.guides;sv('guides',G);_configLoaded=true;}
   if(cfg.params){P=cfg.params;sv('params',P);_configLoaded=true;}
   if(cfg.cashControls){sv('cashControls',cfg.cashControls);_configLoaded=true;}
+}
+function normalizeStockBases(){
+  for(var i=0;i<B.length;i++){
+    if(!articleAvecStock(B[i]))continue;
+    if(typeof B[i].stockBaseSales==='number'&&B[i].stockBaseSales>0&&B[i].stockBaseManual!==true){
+      B[i].stockBaseSales=0;
+    }
+  }
 }
 function fixStockCorrectionsOnce(){
   return;
@@ -1562,13 +1570,14 @@ function ensureStockBase(b){
   if(!b||!articleAvecStock(b))return;
   if(typeof b.stockBase!=='number'||isNaN(b.stockBase)){
     b.stockBase=cleanNum(b.stock);
-    b.stockBaseSales=articleTotalSalesQtyForName(b.nom);
+    b.stockBaseSales=0;
   }
 }
 function setStockBase(b,stock){
   if(!b||!articleAvecStock(b))return;
   b.stockBase=Math.max(0,cleanNum(stock));
   b.stockBaseSales=articleTotalSalesQtyForName(b.nom);
+  b.stockBaseManual=true;
   b.stock=b.stockBase;
 }
 function articleInputDate(d){
