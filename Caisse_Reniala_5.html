@@ -598,7 +598,7 @@ function showNotice(msg){
 
 function apiGet(callback){
   showLoading('Connexion ÃƒÂ  Google SheetsÃ¢â‚¬Â¦');
-  fetch(API_URL+'?action=getAll')
+  fetch(API_URL+'?action=getAll&t='+Date.now(),{cache:'no-store'})
   .then(function(r){return r.json();})
   .then(function(data){
     if(data.ok){
@@ -1533,7 +1533,14 @@ function articleAvecStock(b){
   for(var i=0;i<sansStock.length;i++) if(n.indexOf(sansStock[i])>=0)return false;
   return true;
 }
-function stockArticle(b){return Math.max(0,parseInt(b&&b.stock,10)||0);}
+function stockArticle(b){
+  if(!b)return 0;
+  if(!articleAvecStock(b))return 0;
+  ensureStockBase(b);
+  var base=cleanNum(b.stockBase),baseSales=cleanNum(b.stockBaseSales);
+  var soldSince=Math.max(0,articleTotalSalesQtyForName(b.nom)-baseSales);
+  return Math.max(0,base-soldSince);
+}
 function articlePrixAchat(b){
   if(!b)return 0;
   var pa1=cleanNum(b.pa),pa2=cleanNum(b.pa2);
@@ -1542,6 +1549,27 @@ function articlePrixAchat(b){
 function articleStockEntries(b){
   var a=b&&b.stockEntries;
   return Array.isArray(a)?a:[];
+}
+function articleTotalSalesQtyForName(n){
+  var key=articleNameKey(n),total=0;
+  for(var i=0;i<VB.length;i++){
+    var v=normalizeArticleSale(VB[i]);
+    if(articleNameKey(v.nom)===key) total+=cleanNum(v.qty);
+  }
+  return total;
+}
+function ensureStockBase(b){
+  if(!b||!articleAvecStock(b))return;
+  if(typeof b.stockBase!=='number'||isNaN(b.stockBase)){
+    b.stockBase=cleanNum(b.stock);
+    b.stockBaseSales=articleTotalSalesQtyForName(b.nom);
+  }
+}
+function setStockBase(b,stock){
+  if(!b||!articleAvecStock(b))return;
+  b.stockBase=Math.max(0,cleanNum(stock));
+  b.stockBaseSales=articleTotalSalesQtyForName(b.nom);
+  b.stock=b.stockBase;
 }
 function articleInputDate(d){
   d=articleDateOnly(d||today());
@@ -1698,7 +1726,7 @@ function corrigerStockArticle(id){
   var el=document.getElementById('stock-real-'+id);
   var val=Math.max(0,cleanNum(el?el.value:0));
   if(!confirm('Confirmer le stock reel de '+b.nom+' a '+val+' unite(s) ?'))return;
-  b.stock=val;
+  setStockBase(b,val);
   sv('boissons',B);
   renderBoissons();
   renderParamStockCorrection();
@@ -1721,7 +1749,7 @@ function updArticleStockEntry(articleId,index,field,value){
   }else if(field==='qty'){
     var old=cleanNum(b.stockEntries[index].qty),qty=Math.max(0,cleanNum(value));
     b.stockEntries[index].qty=qty;
-    b.stock=Math.max(0,stockArticle(b)+(qty-old));
+    setStockBase(b,Math.max(0,stockArticle(b)+(qty-old)));
   }
   saveSharedConfig();renderBoissons();
 }
@@ -1733,14 +1761,14 @@ function ajouterStockArticle(id){
   var d=articleInputDate(dEl?dEl.value:today());
   if(!Array.isArray(b.stockEntries))b.stockEntries=[];
   b.stockEntries.unshift({date:d,qty:qty});
-  b.stock=stockArticle(b)+qty;
+  setStockBase(b,stockArticle(b)+qty);
   saveSharedConfig();renderBoissons();
 }
 function updArticleStockable(id,on){
   for(var i=0;i<B.length;i++) if(B[i].id===id){B[i].stockable=!!on;if(!on)B[i].stock=0;break;}
   saveSharedConfig();renderBoissons();
 }
-function ajustS(id,d){for(var i=0;i<B.length;i++) if(B[i].id===id){if(!articleAvecStock(B[i]))return;var before=stockArticle(B[i]);B[i].stock=Math.max(0,before+d);if(d>0&&B[i].stock>before){if(!Array.isArray(B[i].stockEntries))B[i].stockEntries=[];B[i].stockEntries.unshift({date:today(),qty:B[i].stock-before});}break;}saveSharedConfig();renderBoissons();}
+function ajustS(id,d){for(var i=0;i<B.length;i++) if(B[i].id===id){if(!articleAvecStock(B[i]))return;var before=stockArticle(B[i]);var after=Math.max(0,before+d);setStockBase(B[i],after);if(d>0&&after>before){if(!Array.isArray(B[i].stockEntries))B[i].stockEntries=[];B[i].stockEntries.unshift({date:today(),qty:after-before});}break;}saveSharedConfig();renderBoissons();}
 function updArticleNom(id,v){v=(v||'').trim();if(!v){alert('Le nom ne peut pas etre vide');renderBoissons();return;}for(var i=0;i<B.length;i++) if(B[i].id===id){B[i].nom=v;break;}saveSharedConfig();renderBoissons();}
 function updArticleAchat(id,v){for(var i=0;i<B.length;i++) if(B[i].id===id){B[i].pa=parseInt(v)||0;break;}saveSharedConfig();renderBoissons();}
 function updArticleAchat2(id,v){for(var i=0;i<B.length;i++) if(B[i].id===id){B[i].pa2=parseInt(v)||0;break;}saveSharedConfig();renderBoissons();}
@@ -1752,7 +1780,7 @@ function ajouterBoisson(){
   var mx=0;for(var i=0;i<B.length;i++) if(B[i].id>mx) mx=B[i].id;
   var avecStock=document.getElementById('nb-stockable').checked;
   var st=avecStock?(parseInt(document.getElementById('nb-stock').value)||0):0;
-  B.push({id:mx+1,nom:nom,stock:st,stockable:avecStock,stockEntries:(avecStock&&st>0)?[{date:today(),qty:st}]:[],pa:parseInt(document.getElementById('nb-achat').value)||0,pa2:0,paMode:'pa',pv:parseInt(document.getElementById('nb-vente').value)||0});
+  B.push({id:mx+1,nom:nom,stock:st,stockBase:st,stockBaseSales:0,stockable:avecStock,stockEntries:(avecStock&&st>0)?[{date:today(),qty:st}]:[],pa:parseInt(document.getElementById('nb-achat').value)||0,pa2:0,paMode:'pa',pv:parseInt(document.getElementById('nb-vente').value)||0});
   saveSharedConfig();document.getElementById('nb-nom').value='';renderBoissons();
 }
 function supprimerBoisson(id){
