@@ -233,10 +233,23 @@ body:not(.locked) #caisse-lock{display:none!important}
   <div class="stitle">&#127915; Selectionner une prestation</div>
   <div class="tgrid" id="tgrid"></div>
   <div class="frow" style="margin-top:6px">
-    <div class="fg"><label>Nombre de personnes</label><input type="number" id="nbpax" value="1" min="1"/></div>
+    <div class="fg"><label>Nombre de personnes</label><input type="number" id="nbpax" value="1" min="1" oninput="updateTaxesHebergementBox()"/></div>
     <div class="fg" style="justify-content:flex-end;padding-top:20px">
       <button class="btn1" onclick="ajouterLigne()">+ Ajouter au panier</button>
     </div>
+  </div>
+  <div id="taxes-hebergement" class="vbform" style="display:none;margin-top:0;margin-bottom:12px;background:#fffaf2;border-color:#BA7517">
+    <div class="param-title" style="color:#633806;border-bottom-color:#FAEEDA;margin-bottom:8px">Taxes hebergement</div>
+    <div class="frow3">
+      <div class="fg"><label>Nombre de chambres</label><input type="number" id="nb-chambres" min="1" step="1" value="1" oninput="updateTaxesHebergementBox()"/></div>
+      <div class="fg"><label>Nombre de nuits</label><input type="number" id="nb-nuits" min="1" step="1" value="1" oninput="updateTaxesHebergementBox()"/></div>
+      <div class="fg"><label>Prix chambre total</label><input type="number" id="prix-hebergement-total" min="0" step="1000" placeholder="Automatique"/></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label>Taxe de sejour / chambre / nuit</label><input type="number" id="taxe-sejour-unitaire" min="0" step="1000" value="0" oninput="updateTaxesHebergementBox()"/></div>
+      <div class="fg"><label>Vignette touristique / chambre / nuit</label><input type="number" id="vignette-touristique-unitaire" min="0" step="1000" value="0" oninput="updateTaxesHebergementBox()"/></div>
+    </div>
+    <div id="taxes-hebergement-resume" style="font-size:12px;color:#633806;font-weight:bold;margin-top:4px"></div>
   </div>
 
 
@@ -885,9 +898,12 @@ function toggleChauf(){
   updateTotaux();
 }
 function isBoissonLine(l){return l&&l.type==='boisson';}
+function isTaxLine(l){return l&&l.type==='taxe';}
 function isEntreeLine(l){return !isBoissonLine(l);}
+function isPrestationLine(l){return isEntreeLine(l)&&!isTaxLine(l);}
 function isChaufEligibleLine(l){
   if(!isEntreeLine(l)) return false;
+  if(isTaxLine(l)) return false;
   var code=(l.code||'').toUpperCase();
   return ['TORTUES','ORNITH','NOCTURNE','PC M','GC M','ETUD'].indexOf(code)===-1;
 }
@@ -897,7 +913,7 @@ function totalBaseChauf(lignes){var s=0;for(var i=0;i<lignes.length;i++) if(isCh
 function commType(l){return (l&&l.commType)==='forfait'?'forfait':'personne';}
 function commLbl(l){return commType(l)==='forfait'?'forfait':'pers';}
 function calcLineCG(l){return (l.commGuide||0)*(commType(l)==='forfait'?1:l.nb);}
-function calcCG(){var s=0;for(var i=0;i<panier.length;i++) if(isEntreeLine(panier[i])) s+=calcLineCG(panier[i]);return s;}
+function calcCG(){var s=0;for(var i=0;i<panier.length;i++) if(isPrestationLine(panier[i])) s+=calcLineCG(panier[i]);return s;}
 function fraisGuideType(l){return (l&&l.fraisGuideType)==='forfait'?'forfait':'personne';}
 function fraisGuideLbl(l){return fraisGuideType(l)==='forfait'?'forfait':'pers';}
 function calcLineFraisGuide(l){return (l.fraisGuide||0)*(fraisGuideType(l)==='forfait'?1:l.nb);}
@@ -916,10 +932,10 @@ function ventePax(v){
     if(!isNaN(n))return n;
   }
   var p=0,l=(v&&v.panier)||[];
-  for(var i=0;i<l.length;i++) if(isEntreeLine(l[i])) p+=l[i].nb;
+  for(var i=0;i<l.length;i++) if(isPrestationLine(l[i])) p+=l[i].nb;
   return p;
 }
-function venteCodesEntrees(v){var r='',l=v.panier||[];for(var i=0;i<l.length;i++) if(isEntreeLine(l[i])) r+=(r?', ':'')+l[i].code+'x'+l[i].nb;return r;}
+function venteCodesEntrees(v){var r='',l=v.panier||[];for(var i=0;i<l.length;i++) if(isPrestationLine(l[i])) r+=(r?', ':'')+l[i].code+'x'+l[i].nb;return r;}
 function updateTotaux(){
   var tot=calcTot(),cg=calcCG(),pct=P.pctChauf||10,baseChauf=calcBaseChauf();
   document.getElementById('totdisp').textContent=fmt(tot);
@@ -937,14 +953,76 @@ function renderTarifs(){
     d.innerHTML='<div class="tcode">'+t.code+'</div><div class="tdesc">'+t.desc+'</div><div class="tprix">'+fmt(t.prix)+'</div>'+
       ((t.fraisGuide||0)>0?'<div class="tcomm" style="color:#185FA5">Frais guidage: '+fmt(t.fraisGuide)+'/'+fraisGuideLbl(t)+'</div>':'')+
       '<div class="tcomm">Comm: '+fmt(t.commGuide)+'/'+commLbl(t)+'</div>';
-    (function(tt){d.onclick=function(){tarifSel=tt;renderTarifs();};})(t);
+    (function(tt){d.onclick=function(){tarifSel=tt;renderTarifs();updateTaxesHebergementBox();};})(t);
     g.appendChild(d);
   }
+  updateTaxesHebergementBox();
+}
+function tarifKey(t){
+  var s=((t&&t.code)||'')+' '+((t&&t.desc)||'');
+  s=s.toLowerCase();
+  try{s=s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');}catch(e){}
+  return s;
+}
+function isHebergementTarif(t){
+  var s=tarifKey(t);
+  return s.indexOf('bung')>=0||s.indexOf('bungalow')>=0||s.indexOf('chambre')>=0||s.indexOf('heb')>=0;
+}
+function updateTaxesHebergementBox(){
+  var box=document.getElementById('taxes-hebergement');
+  if(!box)return;
+  var on=isHebergementTarif(tarifSel);
+  box.style.display=on?'block':'none';
+  if(on&&tarifSel){
+    var chambres=Math.max(1,parseInt(document.getElementById('nb-chambres').value,10)||1);
+    var nuits=Math.max(1,parseInt(document.getElementById('nb-nuits').value,10)||1);
+    var chambreNuits=chambres*nuits;
+    var prix=document.getElementById('prix-hebergement-total');
+    var prixAuto=(tarifSel.prix||0)*chambreNuits;
+    if(prix&&!prix.value) prix.placeholder='Automatique: '+fmt(prixAuto);
+    var taxe=cleanNum(document.getElementById('taxe-sejour-unitaire').value)*chambreNuits;
+    var vignette=cleanNum(document.getElementById('vignette-touristique-unitaire').value)*chambreNuits;
+    var resume=document.getElementById('taxes-hebergement-resume');
+    if(resume) resume.textContent='Calcul taxes : '+chambres+' chambre(s) x '+nuits+' nuit(s) = '+chambreNuits+' chambre-nuit(s) | Taxe: '+fmt(taxe)+' | Vignette: '+fmt(vignette);
+  }
+}
+function resetTaxesHebergement(){
+  var prix=document.getElementById('prix-hebergement-total');
+  var chambres=document.getElementById('nb-chambres');
+  var nuits=document.getElementById('nb-nuits');
+  var taxe=document.getElementById('taxe-sejour-unitaire');
+  var vignette=document.getElementById('vignette-touristique-unitaire');
+  if(prix) prix.value='';
+  if(chambres) chambres.value='1';
+  if(nuits) nuits.value='1';
+  if(taxe) taxe.value='0';
+  if(vignette) vignette.value='0';
+  updateTaxesHebergementBox();
+}
+function makeTaxLine(code,desc,prix,nb){
+  return {type:'taxe',code:code,desc:desc,prix:prix,fraisGuide:0,fraisGuideType:'forfait',commGuide:0,commType:'forfait',nb:nb,montant:prix*nb};
 }
 function ajouterLigne(){
   if(!tarifSel){alert('Selectionnez une prestation');return;}
   var nb=parseInt(document.getElementById('nbpax').value)||1;
-  panier.push({type:'entree',code:tarifSel.code,desc:tarifSel.desc,prix:tarifSel.prix,fraisGuide:tarifSel.fraisGuide||0,fraisGuideType:fraisGuideType(tarifSel),commGuide:tarifSel.commGuide,commType:commType(tarifSel),nb:nb,montant:calcLineMontant(tarifSel,nb)});
+  var montant=calcLineMontant(tarifSel,nb);
+  var prixTotalInput=document.getElementById('prix-hebergement-total');
+  if(isHebergementTarif(tarifSel)){
+    var chambres=Math.max(1,parseInt(document.getElementById('nb-chambres').value,10)||1);
+    var nuits=Math.max(1,parseInt(document.getElementById('nb-nuits').value,10)||1);
+    var chambreNuits=chambres*nuits;
+    montant=(tarifSel.prix||0)*chambreNuits;
+    if(prixTotalInput&&prixTotalInput.value!=='') montant=Math.max(0,cleanNum(prixTotalInput.value));
+    panier.push({type:'entree',code:tarifSel.code,desc:tarifSel.desc+' ('+chambres+' chambre(s) x '+nuits+' nuit(s))',prix:montant,fraisGuide:tarifSel.fraisGuide||0,fraisGuideType:'forfait',commGuide:tarifSel.commGuide,commType:'forfait',nb:1,montant:montant});
+    var taxeUnit=cleanNum(document.getElementById('taxe-sejour-unitaire').value);
+    var vignetteUnit=cleanNum(document.getElementById('vignette-touristique-unitaire').value);
+    if(taxeUnit>0) panier.push(makeTaxLine('TAXE_SEJOUR','Taxe de sejour / chambre-nuit',taxeUnit,chambreNuits));
+    if(vignetteUnit>0) panier.push(makeTaxLine('VIGNETTE_TOURISTIQUE','Vignette touristique / chambre-nuit',vignetteUnit,chambreNuits));
+    resetTaxesHebergement();
+  } else {
+    var prixUnitaire=nb>0?Math.round(montant/nb):montant;
+    panier.push({type:'entree',code:tarifSel.code,desc:tarifSel.desc,prix:prixUnitaire,fraisGuide:tarifSel.fraisGuide||0,fraisGuideType:fraisGuideType(tarifSel),commGuide:tarifSel.commGuide,commType:commType(tarifSel),nb:nb,montant:montant});
+  }
   renderPanier();
 }
 function qteBoissonDansPanier(id){var q=0;for(var i=0;i<panier.length;i++) if(isBoissonLine(panier[i])&&panier[i].boissonId===id) q+=panier[i].nb;return q;}
@@ -965,6 +1043,7 @@ function renderPanier(){
     var l=panier[i];
     h+='<div class="pline"><span>'+l.desc+' x '+l.nb+'</span><span>'+fmt(l.montant)+'</span><button class="rmv" onclick="removeL('+i+')">&times;</button></div>';
     if(isBoissonLine(l)) h+='<div class="pcomm">&#8618; Article - pas de commission guide</div>';
+    else if(isTaxLine(l)) h+='<div class="pcomm">&#8618; Taxe client - pas de commission guide ni chauffeur</div>';
     else{
       if((l.fraisGuide||0)>0) h+='<div class="pcomm" style="color:#185FA5">&#8618; Frais guidage client: '+fmt(l.fraisGuide)+'/'+fraisGuideLbl(l)+(fraisGuideType(l)==='forfait'?'':' &times; '+l.nb)+' = '+fmt(calcLineFraisGuide(l))+'</div>';
       h+='<div class="pcomm">&#8618; Commission guide: '+fmt(l.commGuide)+'/'+commLbl(l)+(commType(l)==='forfait'?'':' &times; '+l.nb)+' = '+fmt(calcLineCG(l))+(isChaufEligibleLine(l)?'':' &middot; Chauffeur non applicable')+'</div>';
@@ -997,7 +1076,7 @@ function enregistrerBoissonsPanier(date,num){
   }
   sv('boissons',B);sv('ventesBoissons',VB);
 }
-function panierContientEntree(){for(var i=0;i<panier.length;i++) if(isEntreeLine(panier[i])) return true;return false;}
+function panierContientEntree(){for(var i=0;i<panier.length;i++) if(isPrestationLine(panier[i])) return true;return false;}
 function preparerClientSuivant(){
   panier=[];tarifSel=null;chaufActif=false;
   document.getElementById('client').value='';
@@ -1008,6 +1087,7 @@ function preparerClientSuivant(){
   document.getElementById('numfact').value='';
   document.getElementById('nbpax').value=1;
   document.getElementById('cbqty').value=1;
+  resetTaxesHebergement();
   document.getElementById('chauf-chk').checked=false;
   document.getElementById('chauf-box').classList.remove('on');
   document.getElementById('chauf-fields').classList.remove('show');
@@ -1113,6 +1193,8 @@ function resetCaisse(){
   document.getElementById('guide').value='';
   document.getElementById('chauffeur').value='';
   document.getElementById('chauffeur-libre').value='';
+  document.getElementById('nbpax').value=1;
+  resetTaxesHebergement();
   document.getElementById('chauf-chk').checked=false;
   document.getElementById('chauf-box').classList.remove('on');
   document.getElementById('chauf-fields').classList.remove('show');
@@ -1199,11 +1281,11 @@ function buildHistTicketMini(v){
   for(var i=0;i<v.panier.length;i++){
     var l=v.panier[i];
     ligC+='<div class="tline"><span>'+l.desc+' x '+l.nb+'</span><span>'+fmt(l.montant)+'</span></div>';
-    if(isEntreeLine(l)&&(l.fraisGuide||0)>0){
+    if(isPrestationLine(l)&&(l.fraisGuide||0)>0){
       ligC+='<div class="tline-comm" style="color:#1D9E75">&#8618; prix prestation hors frais: <strong>'+fmt(calcLinePrestation(l))+'</strong></div>';
       ligC+='<div class="tline-comm" style="color:#185FA5">&#8618; frais guidage client: <strong>'+fmt(calcLineFraisGuide(l))+'</strong></div>';
     }
-    if(isEntreeLine(l)){
+    if(isPrestationLine(l)){
       hasGuideLines=true;
       ligG+='<div class="tline"><span>'+l.desc+' x '+l.nb+'</span><span>'+fmt(l.montant)+'</span></div>';
       if((l.fraisGuide||0)>0) ligG+='<div class="tline-comm" style="color:#185FA5">&#8618; frais guidage client inclus: <strong>'+fmt(calcLineFraisGuide(l))+'</strong></div>';
@@ -1279,11 +1361,11 @@ function renderTickets(){
   for(var i=0;i<v.panier.length;i++){
     var l=v.panier[i];
     ligC+='<div class="tline"><span>'+l.desc+' x '+l.nb+'</span><span>'+fmt(l.montant)+'</span></div>';
-    if(isEntreeLine(l)&&(l.fraisGuide||0)>0){
+    if(isPrestationLine(l)&&(l.fraisGuide||0)>0){
       ligC+='<div class="tline-comm" style="color:#1D9E75">&#8618; prix prestation hors frais: <strong>'+fmt(calcLinePrestation(l))+'</strong></div>';
       ligC+='<div class="tline-comm" style="color:#185FA5">&#8618; frais guidage client: <strong>'+fmt(calcLineFraisGuide(l))+'</strong></div>';
     }
-    if(isEntreeLine(l)){
+    if(isPrestationLine(l)){
       hasGuideLines=true;
       ligG+='<div class="tline"><span>'+l.desc+' x '+l.nb+'</span><span>'+fmt(l.montant)+'</span></div>';
       if((l.fraisGuide||0)>0) ligG+='<div class="tline-comm" style="color:#185FA5">&#8618; frais guidage client inclus: <strong>'+fmt(calcLineFraisGuide(l))+'</strong></div>';
@@ -2387,4 +2469,3 @@ setTimeout(function(){
 </script>
 </body>
 </html>
-
