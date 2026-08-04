@@ -1743,6 +1743,10 @@ function corrigerStockArticle(id){
   apiPost('saveConfig',configPayload(),function(res){
     hideLoading();
     if(res&&res.ok){
+      applyConfigFromApi(res);
+      renderBoissons();
+      renderParamStockCorrection();
+      if(document.getElementById('article-analysis')) renderArticleAnalytics();
       showNotice('Stock corrige pour '+b.nom+' : '+val+' unite(s).');
     }else{
       showApiError('Stock corrige localement, mais non sauvegarde sur le serveur : '+((res&&res.error)?res.error:'reponse invalide'));
