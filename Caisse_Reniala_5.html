@@ -1544,10 +1544,7 @@ function articleAvecStock(b){
 function stockArticle(b){
   if(!b)return 0;
   if(!articleAvecStock(b))return 0;
-  ensureStockBase(b);
-  var base=cleanNum(b.stockBase),baseSales=cleanNum(b.stockBaseSales);
-  var soldSince=Math.max(0,articleTotalSalesQtyForName(b.nom)-baseSales);
-  return Math.max(0,base-soldSince);
+  return Math.max(0,cleanNum(b.stock));
 }
 function articlePrixAchat(b){
   if(!b)return 0;
@@ -1575,10 +1572,11 @@ function ensureStockBase(b){
 }
 function setStockBase(b,stock){
   if(!b||!articleAvecStock(b))return;
-  b.stockBase=Math.max(0,cleanNum(stock));
-  b.stockBaseSales=articleTotalSalesQtyForName(b.nom);
+  var val=Math.max(0,cleanNum(stock));
+  b.stock=val;
+  b.stockBase=val;
+  b.stockBaseSales=0;
   b.stockBaseManual=true;
-  b.stock=b.stockBase;
 }
 function articleInputDate(d){
   d=articleDateOnly(d||today());
