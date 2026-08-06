@@ -624,7 +624,7 @@ function apiPost(action,payload,callback){
   var body={action:action,payload:payload};
   function parseResponseText(txt){
     try{return JSON.parse(txt);}
-    catch(e){return {ok:false,error:'Reponse serveur non JSON: '+String(txt||'').slice(0,180)};}
+    catch(e){return {ok:false,nonJson:true,error:'Reponse serveur non JSON: '+String(txt||'').slice(0,180)};}
   }
   function fallbackGet(){
     var url=API_URL+'?method=POST&t='+Date.now()+'&data='+encodeURIComponent(JSON.stringify(body));
@@ -641,7 +641,7 @@ function apiPost(action,payload,callback){
   .then(function(r){return r.text();})
   .then(function(txt){
     var d=parseResponseText(txt);
-    if(d.ok||action!=='saveConfig'){if(callback)callback(d);return;}
+    if(d.ok||!d.nonJson){if(callback)callback(d);return;}
     fallbackGet();
   })
   .catch(function(e){if(callback) callback({ok:false,error:e.toString()});});
@@ -1204,7 +1204,9 @@ function validerVente(){
       NID=resE.nextId;
       VE.unshift(v);
     } else {
-      alert('Erreur enregistrement vente entrÃƒÂ©e: '+(resE?resE.error:'rÃƒÂ©seau'));
+      alert('VENTE NON ENREGISTREE dans Google Sheets. Le panier reste a l ecran, ne refaites pas le ticket tant que l erreur n est pas corrigee. Detail: '+(resE?resE.error:'reseau'));
+      if(btnValider){btnValider.disabled=false;btnValider.innerHTML='&#10003; Valider &amp; imprimer les tickets';}
+      return;
     }
     if(lignesArticles.length){
       VB=lignesArticles.concat(VB);
