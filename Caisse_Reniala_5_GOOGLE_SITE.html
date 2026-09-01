@@ -784,6 +784,9 @@ function currentSellerName(){
 function isResponsible(){
   return currentUser&&currentUser.role==='responsable';
 }
+function canManageArticles(){
+  return !!currentUser;
+}
 function updateRoleVisibility(){
   var rz=document.getElementById('articles-responsable-zone');
   var vm=document.getElementById('articles-vendeur-msg');
@@ -792,7 +795,7 @@ function updateRoleVisibility(){
   var add=document.querySelector('#sec-boissons .bois-add-form');
   if(add){
     var fields=add.querySelectorAll('input,button');
-    for(var i=0;i<fields.length;i++) fields[i].disabled=!isResponsible();
+    for(var i=0;i<fields.length;i++) fields[i].disabled=!canManageArticles();
   }
 }
 function updateSessionUser(){
@@ -1679,7 +1682,7 @@ function renderArticleStockFollow(){
 function renderArticleCatalogue(){
   var el=document.getElementById('article-catalogue');if(!el)return;
   if(!B.length){el.innerHTML='<div class="empty">Aucun article au catalogue</div>';return;}
-  var resp=isResponsible();
+  var resp=canManageArticles();
   var h='<table><thead><tr><th>Article</th><th>Type</th><th class="num">Prix achat 1</th><th class="num">Prix achat 2</th><th>Prix utilise</th><th class="num">Prix vente</th><th class="num">Stock</th><th>Action</th></tr></thead><tbody>';
   for(var i=0;i<B.length;i++){
     var b=B[i],avecStock=articleAvecStock(b),stock=avecStock?stockArticle(b):0;
@@ -1702,24 +1705,23 @@ function renderStockManagement(){
   var el=document.getElementById('stock-management');if(!el)return;
   var rows=articleStockRows();
   if(!rows.length){el.innerHTML='<div class="empty">Aucun article avec stock</div>';return;}
-  var resp=isResponsible();
-  var h='<table><thead><tr><th>Article</th><th class="num">Stock actuel</th>'+(resp?'<th class="num">Quantite entree</th><th>Date entree</th><th class="num">Seuil</th>':'<th class="num">Seuil</th>')+'<th class="num">Sorties</th><th>Statut</th>'+(resp?'<th>Action</th>':'')+'</tr></thead><tbody>';
+  var resp=canManageArticles();
+  var canAddStock=!!currentUser;
+  var h='<table><thead><tr><th>Article</th><th class="num">Stock actuel</th>'+(canAddStock?'<th class="num">Quantite entree</th><th>Date entree</th>':'')+'<th class="num">Seuil</th><th class="num">Sorties</th><th>Statut</th>'+(canAddStock?'<th>Action</th>':'')+'</tr></thead><tbody>';
   for(var i=0;i<rows.length;i++){
     var r=rows[i],alert=r.stock<=r.seuil;
     h+='<tr>'+
       '<td>'+esc(r.nom)+'</td>'+
       '<td class="num"><strong>'+r.stock+'</strong></td>';
-    if(resp){
+    if(canAddStock){
       h+='<td class="num"><input type="number" min="1" id="stock-add-'+r.id+'" placeholder="0" style="width:80px;text-align:right;border:1px solid #ccc;border-radius:4px;padding:6px 8px"/></td>'+
-        '<td><input type="date" id="stock-date-'+r.id+'" value="'+today()+'" style="border:1px solid #ccc;border-radius:4px;padding:6px 8px"/></td>'+
-        '<td class="num soft"><input type="number" min="0" value="'+r.seuil+'" onchange="updArticleSeuil('+r.id+',this.value)" style="width:70px;text-align:right;border:1px solid #ccc;border-radius:4px;padding:6px 8px"/></td>';
-    }else{
-      h+='<td class="num soft">'+r.seuil+'</td>';
+        '<td><input type="date" id="stock-date-'+r.id+'" value="'+today()+'" style="border:1px solid #ccc;border-radius:4px;padding:6px 8px"/></td>';
     }
+    h+='<td class="num soft">'+(resp?'<input type="number" min="0" value="'+r.seuil+'" onchange="updArticleSeuil('+r.id+',this.value)" style="width:70px;text-align:right;border:1px solid #ccc;border-radius:4px;padding:6px 8px"/>':r.seuil)+'</td>';
     h+=
       '<td class="num stock-click-cell">'+articleSalesDetails(r.sales,'Aucune vente datee')+'</td>'+
       '<td class="'+(alert?'stock-alert':'stock-ok')+'">'+(alert?'&#9888; A commander':'&#9989; OK')+'</td>'+
-      (resp?'<td><button class="btn1" onclick="ajouterStockArticle('+r.id+')" style="padding:7px 12px;font-size:12px">+ Ajouter au stock</button></td>':'')+
+      (canAddStock?'<td><button class="btn1" onclick="ajouterStockArticle('+r.id+')" style="padding:7px 12px;font-size:12px">+ Ajouter au stock</button></td>':'')+
     '</tr>';
   }
   h+='</tbody></table>';
